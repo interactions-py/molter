@@ -4,6 +4,7 @@ import attrs
 
 import interactions
 import interactions.api.error as inter_error
+from .cache import CacheHandler
 
 if typing.TYPE_CHECKING:
     from .command import MolterCommand
@@ -83,24 +84,21 @@ class MolterContext:
             f"{self.prefix}{self.invoked_name}"
         ).strip()
 
-    async def get_channel(self):
+    async def get_channel(self) -> interactions.Channel:
         """Gets the channel where the message was sent."""
         if self.channel:
             return self.channel
 
-        self.channel = await self.message.get_channel()
-        return self.channel
+        self.channel = await CacheHandler.fetch_channel(self.channel_id)
+        return self.channel  # type: ignore
 
     async def get_guild(self):
         """Gets the guild where the message was sent, if applicable."""
         if self.guild:
             return self.guild
 
-        try:
-            self.guild = await self.message.get_guild()
-            return self.guild
-        except inter_error.HTTPException:
-            return None
+        self.guild = await CacheHandler.fetch_guild(self.guild_id)
+        return self.guild
 
     async def send(
         self,
