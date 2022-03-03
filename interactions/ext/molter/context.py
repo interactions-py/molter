@@ -54,7 +54,7 @@ class MolterContext:
             self.guild,
             self.author,
         ):
-            if not inter_object or not hasattr(inter_object, "_client"):
+            if not inter_object or not "_client" in inter_object.__slots__:
                 continue
             inter_object._client = self.client._http
 
