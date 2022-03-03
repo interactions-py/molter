@@ -119,6 +119,76 @@ class MemberConverter(IDConverter[interactions.Member]):
         return result
 
 
+class UserConverter(IDConverter[interactions.User]):
+    def _get_tag(self, user: interactions.User):
+        return f"{user.username}#{user.discriminator}"
+
+    async def convert(self, ctx: MolterContext, argument: str) -> interactions.User:
+        match = self._get_id_match(argument) or re.match(
+            r"<@!?([0-9]{15,})>$", argument
+        )
+        result = None
+
+        if match:
+            result = await CacheHandler.fetch_user(match.group(1))
+        else:
+            if len(argument) > 5 and argument[-5] == "#":
+                result = next(
+                    (
+                        u
+                        for u in ctx.client._http.cache.users.values
+                        if self._get_tag(u) == argument
+                    ),
+                    None,
+                )
+
+            if not result:
+                result = next(
+                    (
+                        u
+                        for u in ctx.client._http.cache.users.values
+                        if u.username == argument
+                    ),
+                    None,
+                )
+
+        if not result:
+            raise errors.BadArgument(f'User "{argument}" not found.')
+
+        return result
+
+
+class ChannelConverter(IDConverter[interactions.Channel]):
+    async def convert(
+        self,
+        ctx: MolterContext,
+        argument: str,
+    ) -> interactions.Channel:
+        match = self._get_id_match(argument) or re.match(r"<#([0-9]{15,})>$", argument)
+        result = None
+
+        if match:
+            result = await CacheHandler.fetch_channel(match.group(1))
+        elif ctx.guild:
+
+            if ctx.guild.channels:
+                channels = [
+                    interactions.Channel(**data, _client=ctx.client._http)
+                    for data in ctx.guild.channels
+                ]
+            else:
+                channels = await ctx.guild.get_all_channels()
+
+            result = next(
+                (c for c in channels if c.name == argument.removeprefix("#")), None
+            )
+
+        if not result:
+            raise errors.BadArgument(f'Channel "{argument}" not found.')
+
+        return result
+
+
 class Greedy(typing.List[T]):
     # this class doesn't actually do a whole lot
     # it's more or less simply a note to the parameter
@@ -129,4 +199,6 @@ class Greedy(typing.List[T]):
 INTER_OBJECT_TO_CONVERTER: dict[type, type[Converter]] = {
     interactions.Snowflake: SnowflakeConverter,
     interactions.Member: MemberConverter,
+    interactions.User: UserConverter,
+    interactions.Channel: ChannelConverter,
 }
