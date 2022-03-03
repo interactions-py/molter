@@ -21,14 +21,17 @@ pip install git+https://github.com/Astrea49/interactions-molter.git
 import interactions
 from interactions.ext import molter
 
-bot = interactions.Client(token="TOKEN")
+bot = interactions.Client(
+    token="TOKEN",
+    intents=interactions.Intents.DEFAULT | interactions.Intents.GUILD_MESSAGE_CONTENT,
+)
 molt = molter.Molter(bot)
 
-@molt.msg_command(
-    aliases=["test2"]
-)
+
+@molt.msg_command(aliases=["test2"])
 async def test(ctx: molter.MolterContext, some_var: int):
     await ctx.reply(str(some_var))
+
 
 bot.start()
 ```
