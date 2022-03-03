@@ -24,9 +24,6 @@ class MolterContext:
             was sent through.
         guild (`interactions.Message`, optional): The channel this message \
             was sent through, if applicable.
-        author (`interactions.Member | interactions.User`): Either the member \
-            or user who sent the message. Prefers member and defaults to user \
-            if it does not exist.
     """
 
     client: interactions.Client = attrs.field()
@@ -35,16 +32,11 @@ class MolterContext:
     member: typing.Optional[interactions.Member] = attrs.field()
     channel: interactions.Channel = attrs.field()
     guild: typing.Optional[interactions.Guild] = attrs.field()
-    author: typing.Union[interactions.Member, interactions.User] = attrs.field()
 
     invoked_name: str = attrs.field(default=None)
     command: "MolterCommand" = attrs.field(default=None)
     args: list[str] = attrs.field(factory=list)
     prefix: str = attrs.field(default=None)
-
-    @author.default
-    def _decide_author(self):
-        return self.member or self.user
 
     def __attrs_post_init__(self) -> None:
         for inter_object in (
@@ -52,11 +44,20 @@ class MolterContext:
             self.member,
             self.channel,
             self.guild,
-            self.author,
         ):
             if not inter_object or not "_client" in inter_object.__slots__:
                 continue
             inter_object._client = self.client._http
+
+    @property
+    def author(self):
+        """
+        Either the member or user who sent the message. Prefers member,
+        but defaults to user if the member does not exist.
+        This is useful for getting a Discord user, regardless of if the
+        message was from a guild or not.
+        """
+        return self.member or self.user
 
     @property
     def bot(self) -> interactions.Client:
