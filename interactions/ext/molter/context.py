@@ -13,30 +13,29 @@ class MolterContext:
     """
     A special 'Context' object for `molter`'s commands.
     This does not actually inherit from `interactions._Context`.
-
-    Parameters:
-        client (`interactions.Client`): The bot instance.
-        message (`interactions.Message`): The message this represents.
-        user (`interactions.Message`): The user who sent the message.
-        member (`interactions.Message`, optional): The guild member of \
-            the person who sent the message, if applicable.
-        channel (`interactions.Message`): The channel this message \
-            was sent through.
-        guild (`interactions.Message`, optional): The channel this message \
-            was sent through, if applicable.
     """
 
     client: interactions.Client = attrs.field()
+    """The bot instance."""
     message: interactions.Message = attrs.field()
+    """The message this represents."""
     user: interactions.User = attrs.field()
+    """The user who sent the message."""
     member: typing.Optional[interactions.Member] = attrs.field()
+    """The guild member who sent the message, if applicable."""
     channel: interactions.Channel = attrs.field()
+    """The channel this message was sent through."""
     guild: typing.Optional[interactions.Guild] = attrs.field()
+    """The guild this message was sent through, if applicable."""
 
     invoked_name: str = attrs.field(default=None)
+    """The name/alias used to invoke the command."""
     command: "MolterCommand" = attrs.field(default=None)
+    """The command invoked."""
     args: list[str] = attrs.field(factory=list)
+    """The arguments of the command (as a list of strings)."""
     prefix: str = attrs.field(default=None)
+    """The prefix used for this command."""
 
     def __attrs_post_init__(self) -> None:
         for inter_object in (
@@ -61,10 +60,12 @@ class MolterContext:
 
     @property
     def bot(self) -> interactions.Client:
+        """An alias to `MolterContext.client`."""
         return self.client
 
     @property
     def content_parameters(self) -> str:
+        """The message content without the prefix or command."""
         return self.message.content.removeprefix(
             f"{self.prefix}{self.invoked_name}"
         ).strip()
