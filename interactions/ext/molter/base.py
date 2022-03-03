@@ -1,7 +1,6 @@
 import functools
 import inspect
 import typing
-from copy import deepcopy
 from hashlib import md5
 
 import interactions
@@ -80,7 +79,7 @@ class MolterExtension(interactions.Extension):
 
     def teardown(self):
         for cmd in self._msg_commands:
-            names_to_remove = deepcopy(cmd.aliases)
+            names_to_remove = cmd.aliases.copy()
             names_to_remove.append(cmd.name)
 
             for name in names_to_remove:
