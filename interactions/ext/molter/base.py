@@ -9,7 +9,6 @@ from .cache import CacheHandler
 from .command import MolterCommand
 from .context import MolterContext
 from interactions import ext
-from interactions.api import Item
 
 __version__ = "0.1.0"
 
