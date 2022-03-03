@@ -108,10 +108,12 @@ class Molter:
     def __init__(
         self,
         bot: interactions.Client,
-        default_prefix: str | typing.Iterable[str] = None,
+        default_prefix: typing.Union[str, typing.Iterable[str]] = None,
         generate_prefixes: typing.Callable[
             [interactions.Client, interactions.Message],
-            typing.Coroutine[typing.Any, typing.Any, str | typing.Iterable[str]],
+            typing.Coroutine[
+                typing.Any, typing.Any, typing.Union[str, typing.Iterable[str]]
+            ],
         ] = None,
     ) -> None:
         self.bot = bot
@@ -288,10 +290,12 @@ class Molter:
 
 def setup(
     bot: interactions.Client,
-    default_prefix: str | typing.Iterable[str] = None,
+    default_prefix: typing.Union[str, typing.Iterable[str]] = None,
     generate_prefixes: typing.Callable[
         [interactions.Client, interactions.Message],
-        typing.Coroutine[typing.Any, typing.Any, str | typing.Iterable[str]],
+        typing.Coroutine[
+            typing.Any, typing.Any, typing.Union[str, typing.Iterable[str]]
+        ],
     ] = None,
     *args,
     **kwargs,

@@ -35,7 +35,7 @@ class MolterContext:
     member: typing.Optional[interactions.Member] = attrs.field()
     channel: interactions.Channel = attrs.field()
     guild: typing.Optional[interactions.Guild] = attrs.field()
-    author: interactions.Member | interactions.User = attrs.field()
+    author: typing.Union[interactions.Member, interactions.User] = attrs.field()
 
     invoked_name: str = attrs.field(default=None)
     command: "MolterCommand" = attrs.field(default=None)

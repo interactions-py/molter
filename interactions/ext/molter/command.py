@@ -2,8 +2,6 @@ import collections
 import functools
 import inspect
 import typing
-from types import NoneType
-from types import UnionType
 
 import attr
 
@@ -15,6 +13,15 @@ from . import errors
 
 # since MISSING isn't actually a sentinel, we do this just in case
 MISSING = interactions.MISSING()
+# 3.9 compatibility
+NoneType = type(None)
+
+try:
+    from types import UnionType
+
+    UNION_TYPES = {typing.Union, UnionType}
+except ImportError:  # 3.9
+    UNION_TYPES = {typing.Union}
 
 
 @attr.define(slots=True)
@@ -135,14 +142,7 @@ def _greedy_parse(greedy: converters.Greedy, param: inspect.Parameter):
     if arg in {NoneType, str}:
         raise ValueError(f"Greedy[{_get_name(arg)}] is invalid.")
 
-    if (
-        typing.get_origin(arg)
-        in {
-            typing.Union,
-            UnionType,
-        }
-        and NoneType in typing.get_args(arg)
-    ):
+    if typing.get_origin(arg) in UNION_TYPES and NoneType in typing.get_args(arg):
         raise ValueError(f"Greedy[{repr(arg)}] is invalid.")
 
     return arg
@@ -172,7 +172,7 @@ def _get_params(func: typing.Callable):
             anno = _greedy_parse(anno, param)
             cmd_param.greedy = True
 
-        if typing.get_origin(anno) in {typing.Union, UnionType}:
+        if typing.get_origin(anno) in UNION_TYPES:
             cmd_param.union = True
             for arg in typing.get_args(anno):
                 if arg != NoneType:
