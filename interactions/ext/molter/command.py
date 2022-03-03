@@ -5,14 +5,12 @@ import typing
 
 import attr
 
-import interactions
 from . import context
 from . import converters
 from . import errors
+from .utils import MISSING
 
 
-# since MISSING isn't actually a sentinel, we do this just in case
-MISSING = interactions.MISSING()
 # 3.9 compatibility
 NoneType = type(None)
 
