@@ -284,14 +284,14 @@ class MolterCommand:
     )
     "The coroutine to be called for this command"
     name: str = attr.field()
-    "The name of the command"
+    "The name of the command."
 
     params: list[CommandParameter] = attr.field()
     "The paramters of the command."
     aliases: list[str] = attr.field(
         factory=list,
     )
-    "The list of aliases the command can be invoked under. Requires one of the override classes to work."
+    "The list of aliases the command can be invoked under."
     hidden: bool = attr.field(
         default=False,
     )
@@ -299,7 +299,11 @@ class MolterCommand:
     ignore_extra: bool = attr.field(
         default=True,
     )
-    "If `True`, ignores extraneous strings passed to a command if all its requirements are met (e.g. ?foo a b c when only expecting a and b). Otherwise, an error is raised. Defaults to True."
+    """
+    If `True`, ignores extraneous strings passed to a command if all its
+    requirements are met (e.g. ?foo a b c when only expecting a and b).
+    Otherwise, an error is raised. Defaults to True.
+    """
     help: typing.Optional[str] = attr.field()
     """The long help text for the command."""
     brief: typing.Optional[str] = attr.field()
@@ -489,7 +493,6 @@ class MolterCommand:
 
             aliases (`list[str]`, optional): The list of aliases the
             command can be invoked under.
-            Requires one of the override classes to work.
 
             help (`str`, optional): The long help text for the command.
             Defaults to the docstring of the coroutine, if there is one.
@@ -616,7 +619,6 @@ def message_command(
 
         aliases (`list[str]`, optional): The list of aliases the
         command can be invoked under.
-        Requires one of the override classes to work.
 
         help (`str`, optional): The long help text for the command.
         Defaults to the docstring of the coroutine, if there is one.

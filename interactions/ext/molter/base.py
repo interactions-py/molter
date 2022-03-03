@@ -172,7 +172,6 @@ class Molter:
 
             aliases (`list[str]`, optional): The list of aliases the
             command can be invoked under.
-            Requires one of the override classes to work.
 
             help (`str`, optional): The long help text for the command.
             Defaults to the docstring of the coroutine, if there is one.
