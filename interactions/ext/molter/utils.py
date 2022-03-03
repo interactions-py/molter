@@ -7,6 +7,9 @@ import interactions
 # most of these come from dis-snek
 # thanks, polls!
 
+SnowflakeType = typing.Union[interactions.Snowflake, int, str]
+OptionalSnowflakeType = typing.Optional[SnowflakeType]
+
 
 async def when_mentioned(bot: interactions.Client, _):
     return [f"<@{bot.me.id}> ", f"<@!{bot.me.id}> "]  # type: ignore

@@ -2,8 +2,8 @@ import re
 import typing
 
 import interactions
-import interactions.api.error as inter_error
 from . import errors
+from .cache import CacheHandler
 from .context import MolterContext
 
 T = typing.TypeVar("T")
@@ -59,18 +59,6 @@ class SnowflakeConverter(IDConverter[interactions.Snowflake]):
 
 
 class MemberConverter(IDConverter[interactions.Member]):
-    async def _get_member(
-        self, ctx: MolterContext, member_id: str
-    ) -> typing.Optional[interactions.Member]:
-        member = ctx.client._http.cache.members.get(member_id)
-        if member:
-            return member.value
-
-        try:
-            return await ctx.guild.get_member(int(member_id))
-        except inter_error.HTTPException:
-            return None
-
     def _display_name(self, member: interactions.Member):
         return member.nick or member.user.username
 
@@ -108,7 +96,7 @@ class MemberConverter(IDConverter[interactions.Member]):
         result = None
 
         if match:
-            result = await self._get_member(ctx, match.group(1))
+            result = await CacheHandler.fetch_member(ctx.guild.id, match.group(1))
         elif ctx.guild.members:
             result = self._get_member_from_list(ctx.guild.members, argument)
         else:

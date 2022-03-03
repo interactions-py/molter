@@ -5,6 +5,7 @@ from hashlib import md5
 
 import interactions
 from . import utils
+from .cache import CacheHandler
 from .command import MolterCommand
 from .context import MolterContext
 from interactions import ext
@@ -115,6 +116,8 @@ class Molter:
             ],
         ] = None,
     ) -> None:
+        CacheHandler._init_cache(bot._http)
+
         self.bot = bot
         self.default_prefix = default_prefix
 
@@ -221,17 +224,8 @@ class Molter:
         msg._client = self.bot._http  # weirdly enough, sometimes this isn't set right
 
         # get from cache if possible
-        channel = (
-            self.bot._http.cache.channels.get(str(msg.channel_id))
-            or await msg.get_channel()
-        )
-        channel = channel.value if isinstance(channel, Item) else channel
-
-        guild = (
-            self.bot._http.cache.guilds.get(str(msg.guild_id)) or await msg.get_guild()
-        )
-        if guild:
-            guild = guild.value if isinstance(guild, Item) else guild
+        channel = await CacheHandler.fetch_channel(msg.channel_id)
+        guild = await CacheHandler.fetch_guild(msg.guild_id)
 
         return MolterContext(  # type: ignore
             client=self.bot,
