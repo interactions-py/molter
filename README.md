@@ -53,6 +53,10 @@ def setup(bot: interactions.Client):
     Extend(bot)
 ```
 
+## Credit
+
+Thanks to both [`dis-snek`](https://github.com/Discord-Snake-Pit/Dis-Snek) and [Toricane's `interactions-message-content`](https://github.com/Toricane/interactions-message-commands) for a decent part of this! They both had a huge influence over how this port was designed.
+
 ## TODO
 - Make sure it actually works on Python 3.9.
 - Add in converters for standard `interactions` objects.
