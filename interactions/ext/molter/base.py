@@ -100,6 +100,11 @@ class Molter:
         generate_prefixes (`typing.Callable`, optional): An asynchronous function \
             that takes in a `Client` and `Message` object and returns either a \
             string or an iterable of strings. Defaults to None.
+        fetch_data_for_context (`bool`): If molter should attempt to fetch extra \
+            data, like the `Guild` and `Channel` where the message was sent. \
+            Turning this off will make the bot respond slightly faster on first \
+            command usage in a channel, but may inconvenient to developers. \
+            Defaults to False.
 
         If neither `default_prefix` or `generate_prefixes` are provided, the bot
         defaults to using it being mentioned as its prefix.
@@ -115,10 +120,12 @@ class Molter:
                 typing.Any, typing.Any, typing.Union[str, typing.Iterable[str]]
             ],
         ] = None,
+        fetch_data_for_context: bool = False,
     ) -> None:
 
         self.bot = bot
         self.default_prefix = default_prefix
+        self.fetch_data_for_context = fetch_data_for_context
 
         if default_prefix is None and generate_prefixes is None:
             # by default, use mentioning the bot as the prefix
@@ -222,6 +229,15 @@ class Molter:
     async def _create_context(self, msg: interactions.Message) -> MolterContext:
         msg._client = self.bot._http  # weirdly enough, sometimes this isn't set right
 
+        channel = None
+        guild = None
+
+        if self.fetch_data_for_context:
+            # get from cache if possible
+            channel = await msg.get_channel()
+            if msg.guild_id:
+                guild = await msg.get_guild()
+
         return MolterContext(  # type: ignore
             client=self.bot,
             message=msg,
@@ -282,6 +298,7 @@ def setup(
             typing.Any, typing.Any, typing.Union[str, typing.Iterable[str]]
         ],
     ] = None,
+    fetch_data_for_context: bool = False,
     *args,
     **kwargs,
 ) -> None:
@@ -289,4 +306,4 @@ def setup(
     Allows setup of the bot.
     This method is not recommended - use `Molter` directly instead.
     """
-    Molter(bot, default_prefix, generate_prefixes)
+    Molter(bot, default_prefix, generate_prefixes, fetch_data_for_context)
