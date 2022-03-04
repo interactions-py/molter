@@ -26,6 +26,15 @@ T = typing.TypeVar("T")
 T_co = typing.TypeVar("T_co", covariant=True)
 
 
+async def _wrap_exception(
+    function: typing.Coroutine[typing.Any, typing.Any, T]
+) -> typing.Optional[T]:
+    try:
+        return await function
+    except inter_errors.HTTPException:
+        return None
+
+
 @typing.runtime_checkable
 class Converter(typing.Protocol[T_co]):
     async def convert(self, ctx: MolterContext, argument: str) -> T_co:
@@ -113,15 +122,20 @@ class MemberConverter(IDConverter[interactions.Member]):
         result = None
 
         if match:
-            result = await guild.get_member(int(match.group(1)))
+            result = await _wrap_exception(guild.get_member(int(match.group(1))))
         else:
             query = argument
             if len(argument) > 5 and argument[-5] == "#":
                 query, _, _ = argument.rpartition("#")
 
-            members_data = await ctx.client._http.search_guild_members(
-                int(ctx.guild_id), query, limit=100
+            members_data = await _wrap_exception(
+                ctx.client._http.search_guild_members(
+                    int(ctx.guild_id), query, limit=100
+                )
             )
+            if not members_data:
+                raise errors.BadArgument(f'Member "{argument}" not found.')
+
             members = [
                 interactions.Member(**data, _client=ctx.client._http)
                 for data in members_data
@@ -145,8 +159,11 @@ class UserConverter(IDConverter[interactions.User]):
         result = None
 
         if match:
-            result = await ctx.client._http.get_user(int(match.group(1)))
-            result = interactions.User(**result) if result else None
+            result = await _wrap_exception(
+                ctx.client._http.get_user(int(match.group(1)))
+            )
+            if result:
+                result = interactions.User(**result)
         else:
             if len(argument) > 5 and argument[-5] == "#":
                 result = next(
@@ -184,7 +201,9 @@ class ChannelConverter(IDConverter[interactions.Channel]):
         result = None
 
         if match:
-            result = await ctx.client._http.get_channel(int(match.group(1)))
+            result = await _wrap_exception(
+                ctx.client._http.get_channel(int(match.group(1)))
+            )
             result = (
                 interactions.Channel(**result, _client=ctx.client._http)
                 if result
