@@ -13,6 +13,7 @@ __all__ = (
     "MemberConverter",
     "UserConverter",
     "ChannelConverter",
+    "RoleConverter",
     "Greedy",
     "INTER_OBJECT_TO_CONVERTER",
 )
@@ -103,7 +104,6 @@ class MemberConverter(IDConverter[interactions.Member]):
             raise errors.BadArgument("This command cannot be used in private messages.")
 
         guild = await ctx.get_guild()
-
         match = self._get_id_match(argument) or re.match(
             r"<@!?([0-9]{15,})>$", argument
         )
@@ -200,6 +200,34 @@ class ChannelConverter(IDConverter[interactions.Channel]):
         return result
 
 
+class RoleConverter(IDConverter[interactions.Role]):
+    async def convert(
+        self,
+        ctx: MolterContext,
+        argument: str,
+    ) -> interactions.Role:
+        if not ctx.guild_id:
+            raise errors.BadArgument("This command cannot be used in private messages.")
+
+        guild = await ctx.get_guild()
+        match = self._get_id_match(argument) or re.match(r"<@&([0-9]{15,})>$", argument)
+        result = None
+
+        if match:
+            # this is faster than using get_role and is also accurate
+            result = next((r for r in guild.roles if str(r.id) == match.group(1)), None)
+        else:
+            result = next(
+                (r for r in guild.roles if r.name == argument),
+                None,
+            )
+
+        if not result:
+            raise errors.BadArgument(f'Role "{argument}" not found.')
+
+        return result
+
+
 class Greedy(typing.List[T]):
     # this class doesn't actually do a whole lot
     # it's more or less simply a note to the parameter
@@ -212,4 +240,5 @@ INTER_OBJECT_TO_CONVERTER: dict[type, type[Converter]] = {
     interactions.Member: MemberConverter,
     interactions.User: UserConverter,
     interactions.Channel: ChannelConverter,
+    interactions.Role: RoleConverter,
 }
