@@ -4,6 +4,22 @@ import typing
 
 import interactions
 
+__all__ = (
+    "SnowflakeType",
+    "OptionalSnowflakeType",
+    "when_mentioned",
+    "when_mentioned_or",
+    "ARG_PARSE_REGEX",
+    "INITIAL_WORD_REGEX",
+    "MENTION_REGEX",
+    "get_args",
+    "get_first_word",
+    "escape_mentions",
+    "Singleton",
+    "Sentinel",
+    "MISSING",
+)
+
 # most of these come from dis-snek
 # thanks, polls!
 
@@ -41,7 +57,7 @@ _quotes = {
     "《": "》",
     "〈": "〉",
 }
-start_quotes = frozenset(_quotes.keys())
+_start_quotes = frozenset(_quotes.keys())
 
 _pending_regex = r"(1.*2|[^\s]+)"
 _pending_regex = _pending_regex.replace("1", f"[{''.join(list(_quotes.keys()))}]")
@@ -62,7 +78,7 @@ def get_args(text: str) -> list:
         A list of words
     """
     args = ARG_PARSE_REGEX.findall(text)
-    return [(arg[1:-1] if arg[0] in start_quotes else arg) for arg in args]
+    return [(arg[1:-1] if arg[0] in _start_quotes else arg) for arg in args]
 
 
 def get_first_word(text: str) -> typing.Optional[str]:

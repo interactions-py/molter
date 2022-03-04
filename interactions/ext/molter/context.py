@@ -9,6 +9,8 @@ from .cache import CacheHandler
 if typing.TYPE_CHECKING:
     from .command import MolterCommand
 
+__all__ = ("MolterContext",)
+
 
 @attrs.define(slots=True)
 class MolterContext:

@@ -3,6 +3,9 @@ import typing
 from .utils import escape_mentions
 
 
+__all__ = ("MolterException", "BadArgument")
+
+
 class MolterException(Exception):
     pass
 

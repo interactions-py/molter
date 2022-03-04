@@ -5,6 +5,8 @@ import interactions
 import interactions.api.error as inter_error
 from . import utils
 
+__all__ = ("CacheHandler",)
+
 T = typing.TypeVar("T")
 
 
