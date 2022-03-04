@@ -5,11 +5,11 @@ import typing
 
 import attr
 
+import interactions
 from . import context
 from . import converters
 from . import errors
 from .utils import maybe_coroutine
-from .utils import MISSING
 
 __all__ = (
     "CommandParameter",
@@ -20,6 +20,8 @@ __all__ = (
 )
 
 
+# since MISSING isn't actually a sentinel, we do this just in case
+MISSING = interactions.MISSING()
 # 3.9 compatibility
 NoneType = type(None)
 

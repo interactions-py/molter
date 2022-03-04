@@ -1,4 +1,3 @@
-import inspect
 import re
 import typing
 
@@ -114,51 +113,3 @@ def escape_mentions(content: str) -> str:
         Processed string
     """
     return MENTION_REGEX.sub("@\u200b\\1", content)
-
-
-class Singleton(type):
-    _instances = {}
-
-    def __call__(cls, *args, **kwargs):
-        if cls not in cls._instances:
-            cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
-        return cls._instances[cls]
-
-
-class Sentinel(metaclass=Singleton):
-    @staticmethod
-    def _get_caller_module() -> str:
-        stack = inspect.stack()
-
-        caller = stack[2][0]
-        return caller.f_globals.get("__name__")
-
-    def __init__(self):
-        self.__module__ = self._get_caller_module()
-        self.name = type(self).__name__
-
-    def __repr__(self):
-        return self.name
-
-    def __reduce__(self):
-        return self.name
-
-    def __copy__(self):
-        return self
-
-    def __deepcopy__(self, _):
-        return self
-
-
-class Missing(Sentinel):
-    # inter.py's MISSING isn't actually a sentinel
-    # id rather not rely on it, and since Sentinel
-    # is needed anyways, might as well have it here
-    def __getattr__(self, *_):
-        return None
-
-    def __bool__(self):
-        return False
-
-
-MISSING = Missing()
