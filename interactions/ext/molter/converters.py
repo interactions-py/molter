@@ -111,15 +111,13 @@ class MemberConverter(IDConverter[interactions.Member]):
 
         if match:
             result = await guild.get_member(int(match.group(1)))
-        elif ctx.guild.members:
-            result = self._get_member_from_list(ctx.guild.members, argument)
         else:
             query = argument
             if len(argument) > 5 and argument[-5] == "#":
                 query, _, _ = argument.rpartition("#")
 
             members_data = await ctx.client._http.search_guild_members(
-                int(ctx.guild.id), query, limit=100
+                int(ctx.guild_id), query, limit=100
             )
             members = [
                 interactions.Member(**data, _client=ctx.client._http)
@@ -189,16 +187,9 @@ class ChannelConverter(IDConverter[interactions.Channel]):
                 if result
                 else None
             )
-        elif ctx.guild:
-
-            if ctx.guild.channels:
-                channels = [
-                    interactions.Channel(**data, _client=ctx.client._http)
-                    for data in ctx.guild.channels
-                ]
-            else:
-                channels = await ctx.guild.get_all_channels()
-
+        elif ctx.guild_id:
+            guild = await ctx.get_guild()
+            channels = await guild.get_all_channels()
             result = next(
                 (c for c in channels if c.name == argument.removeprefix("#")), None
             )
