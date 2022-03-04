@@ -2,6 +2,7 @@ import re
 import typing
 
 import interactions
+import interactions.api.error as inter_errors
 from . import errors
 from .context import MolterContext
 
@@ -14,6 +15,8 @@ __all__ = (
     "UserConverter",
     "ChannelConverter",
     "RoleConverter",
+    "GuildConverter",
+    "MessageConverter",
     "Greedy",
     "INTER_OBJECT_TO_CONVERTER",
 )
@@ -228,6 +231,63 @@ class RoleConverter(IDConverter[interactions.Role]):
         return result
 
 
+class GuildConverter(IDConverter[interactions.Guild]):
+    async def convert(self, ctx: MolterContext, argument: str) -> interactions.Guild:
+        match = self._get_id_match(argument)
+        guild_id: typing.Optional[int] = None
+
+        if match:
+            guild_id = int(match.group(1))
+        else:
+            # sadly, ids are the only viable way of getting accurate guild objects
+            # in a reasonable, non-intensive manner
+            # if we did names, we would either have to:
+            # a: fetch the entire guild list, an expensive operation for large guilds
+            # b: use inter.py's self_guild cache, which is prone to being outdated
+            # and so may have the wrong name
+            raise errors.BadArgument(f'Guild "{argument}" not found.')
+
+        try:
+            guild_data = await ctx.client._http.get_guild(guild_id)
+            return interactions.Guild(**guild_data, _client=ctx.client._http)
+        except inter_errors.HTTPException:
+            raise errors.BadArgument(f'Guild "{argument}" not found.')
+
+
+class MessageConverter(Converter[interactions.Message]):
+    # either just the id or <chan_id>-<mes_id>, a format you can get by shift clicking "copy id"
+    _ID_REGEX = re.compile(
+        r"(?:(?P<channel_id>[0-9]{15,})-)?(?P<message_id>[0-9]{15,})"
+    )
+    # of course, having a way to get it from a link is nice
+    _MESSAGE_LINK_REGEX = re.compile(
+        r"https?://[\S]*?discord(?:app)?\.com/channels/(?P<guild_id>[0-9]{15,}|@me)/"
+        r"(?P<channel_id>[0-9]{15,})/(?P<message_id>[0-9]{15,})\/?$"
+    )
+
+    async def convert(self, ctx: MolterContext, argument: str) -> interactions.Message:
+        match = self._ID_REGEX.match(argument) or self._MESSAGE_LINK_REGEX.match(
+            argument
+        )
+        if not match:
+            raise errors.BadArgument(f'Message "{argument}" not found.')
+
+        data = match.groupdict()
+
+        message_id = int(data["message_id"])
+        channel_id = (
+            int(ctx.channel_id)
+            if not data.get("channel_id")
+            else int(data["channel_id"])
+        )
+
+        try:
+            message_data = await ctx.client._http.get_message(channel_id, message_id)
+            return interactions.Message(**message_data, _client=ctx.client._http)
+        except inter_errors.HTTPException:
+            raise errors.BadArgument(f'Message "{argument}" not found.')
+
+
 class Greedy(typing.List[T]):
     # this class doesn't actually do a whole lot
     # it's more or less simply a note to the parameter
@@ -241,4 +301,6 @@ INTER_OBJECT_TO_CONVERTER: dict[type, type[Converter]] = {
     interactions.User: UserConverter,
     interactions.Channel: ChannelConverter,
     interactions.Role: RoleConverter,
+    interactions.Guild: GuildConverter,
+    interactions.Message: MessageConverter,
 }
