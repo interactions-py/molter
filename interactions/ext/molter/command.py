@@ -8,12 +8,12 @@ import attr
 from . import context
 from . import converters
 from . import errors
+from .utils import maybe_coroutine
 from .utils import MISSING
 
 __all__ = (
     "CommandParameter",
     "ArgsIterator",
-    "maybe_coroutine",
     "MolterCommand",
     "message_command",
     "msg_command",
@@ -209,13 +209,6 @@ def _get_params(func: typing.Callable):
         cmd_params.append(cmd_param)
 
     return cmd_params
-
-
-async def maybe_coroutine(func: typing.Callable, *args, **kwargs):
-    if inspect.iscoroutinefunction(func):
-        return await func(*args, **kwargs)
-    else:
-        return func(*args, **kwargs)
 
 
 async def _convert(param: CommandParameter, ctx: context.MolterContext, arg: str):

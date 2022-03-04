@@ -9,6 +9,7 @@ __all__ = (
     "OptionalSnowflakeType",
     "when_mentioned",
     "when_mentioned_or",
+    "maybe_coroutine",
     "ARG_PARSE_REGEX",
     "INITIAL_WORD_REGEX",
     "MENTION_REGEX",
@@ -36,6 +37,13 @@ async def when_mentioned_or(*prefixes: str):
         return await when_mentioned(bot, _) + list(prefixes)
 
     return new_mention
+
+
+async def maybe_coroutine(func: typing.Callable, *args, **kwargs):
+    if inspect.iscoroutinefunction(func):
+        return await func(*args, **kwargs)
+    else:
+        return func(*args, **kwargs)
 
 
 _quotes = {
