@@ -4,7 +4,6 @@ import attrs
 
 import interactions
 import interactions.api.error as inter_error
-from .cache import CacheHandler
 
 if typing.TYPE_CHECKING:
     from .command import MolterCommand
@@ -27,12 +26,6 @@ class MolterContext:
     """The user who sent the message."""
     member: typing.Optional[interactions.Member] = attrs.field()
     """The guild member who sent the message, if applicable."""
-    channel: typing.Optional[interactions.Channel] = attrs.field()
-    """The channel this message was sent through, if applicable.
-    Will be `None` if `Molter.fetch_data_for_context` is False."""
-    guild: typing.Optional[interactions.Guild] = attrs.field()
-    """The guild this message was sent through, if applicable.
-    Will be `None` if `Molter.fetch_data_for_context` is False."""
 
     invoked_name: str = attrs.field(default=None)
     """The name/alias used to invoke the command."""
@@ -47,8 +40,6 @@ class MolterContext:
         for inter_object in (
             self.message,
             self.member,
-            self.channel,
-            self.guild,
         ):
             if not inter_object or "_client" not in inter_object.__slots__:
                 continue
@@ -86,21 +77,13 @@ class MolterContext:
             f"{self.prefix}{self.invoked_name}"
         ).strip()
 
-    async def get_channel(self) -> interactions.Channel:
+    async def get_channel(self):
         """Gets the channel where the message was sent."""
-        if self.channel:
-            return self.channel
-
-        self.channel = await CacheHandler.fetch_channel(self.channel_id)
-        return self.channel  # type: ignore
+        return await self.message.get_channel()
 
     async def get_guild(self):
         """Gets the guild where the message was sent, if applicable."""
-        if self.guild:
-            return self.guild
-
-        self.guild = await CacheHandler.fetch_guild(self.guild_id)
-        return self.guild
+        return await self.message.get_guild()
 
     async def send(
         self,

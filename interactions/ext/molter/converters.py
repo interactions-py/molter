@@ -3,7 +3,6 @@ import typing
 
 import interactions
 from . import errors
-from .cache import CacheHandler
 from .context import MolterContext
 
 __all__ = (
@@ -100,8 +99,10 @@ class MemberConverter(IDConverter[interactions.Member]):
         return result
 
     async def convert(self, ctx: MolterContext, argument: str) -> interactions.Member:
-        if not ctx.guild:
+        if not ctx.guild_id:
             raise errors.BadArgument("This command cannot be used in private messages.")
+
+        guild = await ctx.get_guild()
 
         match = self._get_id_match(argument) or re.match(
             r"<@!?([0-9]{15,})>$", argument
@@ -109,7 +110,7 @@ class MemberConverter(IDConverter[interactions.Member]):
         result = None
 
         if match:
-            result = await CacheHandler.fetch_member(ctx.guild.id, match.group(1))
+            result = await guild.get_member(int(match.group(1)))
         elif ctx.guild.members:
             result = self._get_member_from_list(ctx.guild.members, argument)
         else:
@@ -143,7 +144,8 @@ class UserConverter(IDConverter[interactions.User]):
         result = None
 
         if match:
-            result = await CacheHandler.fetch_user(match.group(1))
+            result = await ctx.client._http.get_user(int(match.group(1)))
+            result = interactions.User(**result) if result else None
         else:
             if len(argument) > 5 and argument[-5] == "#":
                 result = next(
@@ -181,7 +183,12 @@ class ChannelConverter(IDConverter[interactions.Channel]):
         result = None
 
         if match:
-            result = await CacheHandler.fetch_channel(match.group(1))
+            result = await ctx.client._http.get_channel(int(match.group(1)))
+            result = (
+                interactions.Channel(**result, _client=ctx.client._http)
+                if result
+                else None
+            )
         elif ctx.guild:
 
             if ctx.guild.channels:
