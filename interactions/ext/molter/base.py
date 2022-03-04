@@ -102,8 +102,8 @@ class Molter:
             string or an iterable of strings. Defaults to None.
         fetch_data_for_context (`bool`): If molter should attempt to fetch extra \
             data, like the `Guild` and `Channel` where the message was sent. \
-            Turning this off will make the bot respond slightly faster on first \
-            command usage in a channel, but may inconvenient to developers. \
+            Turning this on may make the bot respond slower or faster depending on \
+            the converters used in this command, but usually is slower. \
             Defaults to False.
 
         If neither `default_prefix` or `generate_prefixes` are provided, the bot
