@@ -26,7 +26,7 @@ T = typing.TypeVar("T")
 T_co = typing.TypeVar("T_co", covariant=True)
 
 
-async def _wrap_exception(
+async def _wrap_http_exception(
     function: typing.Coroutine[typing.Any, typing.Any, T]
 ) -> typing.Optional[T]:
     try:
@@ -122,13 +122,13 @@ class MemberConverter(IDConverter[interactions.Member]):
         result = None
 
         if match:
-            result = await _wrap_exception(guild.get_member(int(match.group(1))))
+            result = await _wrap_http_exception(guild.get_member(int(match.group(1))))
         else:
             query = argument
             if len(argument) > 5 and argument[-5] == "#":
                 query, _, _ = argument.rpartition("#")
 
-            members_data = await _wrap_exception(
+            members_data = await _wrap_http_exception(
                 ctx.client._http.search_guild_members(
                     int(ctx.guild_id), query, limit=100
                 )
@@ -159,7 +159,7 @@ class UserConverter(IDConverter[interactions.User]):
         result = None
 
         if match:
-            result = await _wrap_exception(
+            result = await _wrap_http_exception(
                 ctx.client._http.get_user(int(match.group(1)))
             )
             if result:
@@ -201,14 +201,11 @@ class ChannelConverter(IDConverter[interactions.Channel]):
         result = None
 
         if match:
-            result = await _wrap_exception(
+            result = await _wrap_http_exception(
                 ctx.client._http.get_channel(int(match.group(1)))
             )
-            result = (
-                interactions.Channel(**result, _client=ctx.client._http)
-                if result
-                else None
-            )
+            if result:
+                result = interactions.Channel(**result, _client=ctx.client._http)
         elif ctx.guild_id:
             guild = await ctx.get_guild()
             channels = await guild.get_all_channels()
