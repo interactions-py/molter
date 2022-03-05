@@ -15,9 +15,6 @@ __all__ = (
     "get_args",
     "get_first_word",
     "escape_mentions",
-    "Singleton",
-    "Sentinel",
-    "MISSING",
 )
 
 # most of these come from dis-snek
