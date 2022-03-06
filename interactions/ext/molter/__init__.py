@@ -1,5 +1,4 @@
 from .base import *
-from .cache import *
 from .command import *
 from .context import *
 from .converters import *
