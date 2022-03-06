@@ -243,6 +243,8 @@ class Molter:
             message=msg,
             user=msg.author,
             member=msg.member,
+            channel=channel,
+            guild=guild,
         )
 
     async def _handle_msg_commands(self, msg: interactions.Message):
