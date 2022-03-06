@@ -14,7 +14,7 @@ __all__ = (
     "ARG_PARSE_REGEX",
     "INITIAL_WORD_REGEX",
     "MENTION_REGEX",
-    "get_args",
+    "get_args_from_str",
     "get_first_word",
     "escape_mentions",
 )
@@ -79,15 +79,15 @@ INITIAL_WORD_REGEX = re.compile(r"^([^\s]+)\s*?")
 MENTION_REGEX = re.compile(r"@(everyone|here|[!&]?[0-9]{17,20})")
 
 
-def get_args(text: str) -> list:
+def get_args_from_str(input: str) -> list:
     """
-    Get arguments from an input text.
+    Get arguments from an input string.
     Args:
-        text: The text to process
+        input: The string to process
     Returns:
         A list of words
     """
-    args = ARG_PARSE_REGEX.findall(text)
+    args = ARG_PARSE_REGEX.findall(input)
     return [(arg[1:-1] if arg[0] in _start_quotes else arg) for arg in args]
 
 

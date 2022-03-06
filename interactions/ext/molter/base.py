@@ -285,7 +285,7 @@ class Molter:
 
             if command and command.enabled:
                 context.invoked_name = context.invoked_name.strip()
-                context.args = utils.get_args(context.content_parameters)
+                context.args = utils.get_args_from_str(context.content_parameters)
                 await command.invoke(context)
 
 
