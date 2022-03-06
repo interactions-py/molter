@@ -103,7 +103,7 @@ class Molter:
         fetch_data_for_context (`bool`): If molter should attempt to fetch extra \
             data, like the `Guild` and `Channel` where the message was sent. \
             Turning this on may make the bot respond slower or faster depending on \
-            the converters used in this command, but usually is slower. \
+            the converters used in the command, but usually is slower. \
             Defaults to False.
 
         If neither `default_prefix` or `generate_prefixes` are provided, the bot
