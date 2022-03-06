@@ -164,7 +164,7 @@ class MolterContext:
         """
 
         channel = await self._get_channel_for_send()
-        await channel.send(
+        return await channel.send(
             content,
             tts=tts,
             embeds=embeds,
@@ -217,7 +217,7 @@ class MolterContext:
         :rtype: Message
         """
 
-        await self.message.reply(
+        return await self.message.reply(
             content,
             tts=tts,
             embeds=embeds,
