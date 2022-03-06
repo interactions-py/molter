@@ -3,6 +3,7 @@ import typing
 import attrs
 
 import interactions
+from . import utils
 
 if typing.TYPE_CHECKING:
     from .command import MolterCommand
@@ -83,8 +84,8 @@ class MolterContext:
     @property
     def content_parameters(self) -> str:
         """The message content without the prefix or command."""
-        return self.message.content.removeprefix(
-            f"{self.prefix}{self.invoked_name}"
+        return utils.remove_prefix(
+            self.message.content, f"{self.prefix}{self.invoked_name}"
         ).strip()
 
     async def get_channel(self):
