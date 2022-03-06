@@ -16,7 +16,7 @@ setup(
     url="https://github.com/Astrea49/interactions-molter",
     version="0.1.0",
     packages=["interactions.ext.molter"],
-    python_requires=">=3.9",
+    python_requires=">=3.8.6",
     install_requires=requirements,
     classifiers=[
         "Programming Language :: Python :: 3",
