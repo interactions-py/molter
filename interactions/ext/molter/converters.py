@@ -4,6 +4,7 @@ import typing
 import interactions
 import interactions.api.error as inter_errors
 from . import errors
+from . import utils
 from .context import MolterContext
 
 __all__ = (
@@ -212,7 +213,8 @@ class ChannelConverter(IDConverter[interactions.Channel]):
             guild = await ctx.get_guild()
             channels = await guild.get_all_channels()
             result = next(
-                (c for c in channels if c.name == argument.removeprefix("#")), None
+                (c for c in channels if c.name == utils.remove_prefix(argument, "#")),
+                None,
             )
 
         if not result:
