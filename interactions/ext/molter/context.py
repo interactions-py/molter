@@ -104,6 +104,21 @@ class MolterContext:
         self.guild = await self.message.get_guild()
         return self.guild
 
+    async def _get_channel_for_send(self) -> interactions.Channel:
+        """
+        Gets the channel to send a message for.
+        Unlike `get_channel`, we don't exactly need a channel with
+        fully correct attributes, so a cached result works well enough.
+        """
+
+        if self.channel:
+            return self.channel
+
+        if channel := self.client._http.cache.channels.get(str(self.channel_id)):
+            return channel.value
+
+        return await self.get_channel()
+
     async def send(
         self,
         content: typing.Optional[str] = interactions.MISSING,  # type: ignore
@@ -148,7 +163,7 @@ class MolterContext:
         :rtype: Message
         """
 
-        channel = await self.get_channel()
+        channel = await self._get_channel_for_send()
         await channel.send(
             content,
             tts=tts,
