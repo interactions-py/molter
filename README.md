@@ -63,3 +63,4 @@ Thanks to both [`dis-snek`](https://github.com/Discord-Snake-Pit/Dis-Snek) and [
 ## TODO
 - Make sure it actually works on Python 3.8-3.9.
 - Add in converters for standard `interactions` objects.
+- Add in documentation, or at least fill out docstrings.
