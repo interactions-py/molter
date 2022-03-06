@@ -38,7 +38,7 @@ class CommandParameter:
     name: str = attr.field(default=None)
     default: typing.Optional[typing.Any] = attr.field(default=None)
     type: type = attr.field(default=None)
-    converters: list[
+    converters: typing.List[
         typing.Callable[[context.MolterContext, str], typing.Any]
     ] = attr.field(factory=list)
     greedy: bool = attr.field(default=False)
@@ -287,9 +287,9 @@ class MolterCommand:
     name: str = attr.field()
     "The name of the command."
 
-    params: list[CommandParameter] = attr.field()
+    params: typing.List[CommandParameter] = attr.field()
     "The paramters of the command."
-    aliases: list[str] = attr.field(
+    aliases: typing.List[str] = attr.field(
         factory=list,
     )
     "The list of aliases the command can be invoked under."
@@ -313,7 +313,7 @@ class MolterCommand:
         default=None,
     )
     "The parent command, if applicable."
-    command_dict: dict[str, "MolterCommand"] = attr.field(
+    command_dict: typing.Dict[str, "MolterCommand"] = attr.field(
         factory=dict,
     )
     "A dict of a subcommand's name and the subcommand for this command."
@@ -478,7 +478,7 @@ class MolterCommand:
         self,
         name: str = None,
         *,
-        aliases: list[str] = None,
+        aliases: typing.List[str] = None,
         help: str = None,
         brief: str = None,
         enabled: bool = True,
@@ -604,7 +604,7 @@ class MolterCommand:
 def message_command(
     name: str = None,
     *,
-    aliases: list[str] = None,
+    aliases: typing.List[str] = None,
     help: str = None,
     brief: str = None,
     enabled: bool = True,

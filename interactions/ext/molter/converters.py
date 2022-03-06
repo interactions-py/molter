@@ -87,7 +87,9 @@ class MemberConverter(IDConverter[interactions.Member]):
     def _display_name(self, member: interactions.Member):
         return member.nick or member.user.username
 
-    def _get_member_from_list(self, members: list[interactions.Member], argument: str):
+    def _get_member_from_list(
+        self, members: typing.List[interactions.Member], argument: str
+    ):
         result = None
         if len(argument) > 5 and argument[-5] == "#":
             result = next(
@@ -311,7 +313,7 @@ class Greedy(typing.List[T]):
     pass
 
 
-INTER_OBJECT_TO_CONVERTER: dict[type, type[Converter]] = {
+INTER_OBJECT_TO_CONVERTER: typing.Dict[type, typing.Type[Converter]] = {
     interactions.Snowflake: SnowflakeConverter,
     interactions.Member: MemberConverter,
     interactions.User: UserConverter,

@@ -59,7 +59,7 @@ base = BasePatch(
 class MolterExtension(interactions.Extension):
     """An extension that allows you to use molter commands in them."""
 
-    _msg_commands: list[MolterCommand]
+    _msg_commands: typing.List[MolterCommand]
 
     def __new__(
         cls, client: interactions.Client, *args, **kwargs
@@ -164,7 +164,7 @@ class Molter:
         self,
         name: str = None,
         *,
-        aliases: list[str] = None,
+        aliases: typing.List[str] = None,
         help: str = None,
         brief: str = None,
         enabled: bool = True,
@@ -278,7 +278,7 @@ class Molter:
                 command = new_command
                 context.invoked_name += f"{first_word} "
 
-                content = content.removeprefix(first_word).strip()
+                content = utils.remove_prefix(content, first_word).strip()
 
             if isinstance(command, interactions.Client):
                 command = None

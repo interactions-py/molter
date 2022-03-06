@@ -39,7 +39,7 @@ class MolterContext:
     """The name/alias used to invoke the command."""
     command: "MolterCommand" = attrs.field(default=None)
     """The command invoked."""
-    args: list[str] = attrs.field(factory=list)
+    args: typing.List[str] = attrs.field(factory=list)
     """The arguments of the command (as a list of strings)."""
     prefix: str = attrs.field(default=None)
     """The prefix used for this command."""
@@ -109,7 +109,7 @@ class MolterContext:
         *,
         tts: typing.Optional[bool] = interactions.MISSING,  # type: ignore
         embeds: typing.Optional[
-            typing.Union["interactions.Embed", list["interactions.Embed"]]
+            typing.Union["interactions.Embed", typing.List["interactions.Embed"]]
         ] = interactions.MISSING,  # type: ignore
         allowed_mentions: typing.Optional[
             "interactions.MessageInteraction"
@@ -163,7 +163,7 @@ class MolterContext:
         *,
         tts: typing.Optional[bool] = interactions.MISSING,  # type: ignore
         embeds: typing.Optional[
-            typing.Union["interactions.Embed", list["interactions.Embed"]]
+            typing.Union["interactions.Embed", typing.List["interactions.Embed"]]
         ] = interactions.MISSING,  # type: ignore
         allowed_mentions: typing.Optional[
             "interactions.MessageInteraction"
