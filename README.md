@@ -5,8 +5,6 @@ This attempts to make the message command experience much like `discord.py`'s me
 
 **NOTE**: This is a work in progress! Some things may be broken, and some things may not work as they should. More features need to be added, too.
 
-**NOTE 2**: As of right now, this code has *only* been tested on 3.10 so far. Take a look at [Toricane's `interactions-message-commands`](https://github.com/Toricane/interactions-message-commands) if you want guaranteed message command support for older versions.
-
 ## Installation
 
 ```
@@ -61,6 +59,5 @@ def setup(bot: interactions.Client):
 Thanks to both [`dis-snek`](https://github.com/Discord-Snake-Pit/Dis-Snek) and [Toricane's `interactions-message-commands`](https://github.com/Toricane/interactions-message-commands) for a decent part of this! They both had a huge influence over how this port was designed.
 
 ## TODO
-- Make sure it actually works on Python 3.8-3.9.
 - Add in converters for standard `interactions` objects.
 - Add in documentation, or at least fill out docstrings.
