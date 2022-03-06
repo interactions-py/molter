@@ -263,7 +263,7 @@ class Molter:
             context.invoked_name = ""
             context.prefix = prefix_used
 
-            content = msg.content.removeprefix(prefix_used)
+            content = utils.remove_prefix(msg.content, prefix_used)
             command = self.bot
 
             while True:

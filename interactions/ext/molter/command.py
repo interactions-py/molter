@@ -22,14 +22,14 @@ __all__ = (
 
 # since MISSING isn't actually a sentinel, we do this just in case
 MISSING = interactions.MISSING()
-# 3.9 compatibility
+# 3.8+ compatibility
 NoneType = type(None)
 
 try:
     from types import UnionType
 
     UNION_TYPES = {typing.Union, UnionType}
-except ImportError:  # 3.9
+except ImportError:  # 3.8-3.9
     UNION_TYPES = {typing.Union}
 
 

@@ -6,6 +6,7 @@ import interactions
 __all__ = (
     "SnowflakeType",
     "OptionalSnowflakeType",
+    "remove_prefix",
     "when_mentioned",
     "when_mentioned_or",
     "maybe_coroutine",
@@ -22,6 +23,10 @@ __all__ = (
 
 SnowflakeType = typing.Union[interactions.Snowflake, int, str]
 OptionalSnowflakeType = typing.Optional[SnowflakeType]
+
+
+def remove_prefix(string: str, prefix: str):
+    return string[len(prefix) :] if string.startswith(prefix) else string[:]
 
 
 async def when_mentioned(bot: interactions.Client, _):
