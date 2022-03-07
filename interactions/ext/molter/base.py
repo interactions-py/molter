@@ -49,7 +49,7 @@ version = VersionPatch(
 base = BasePatch(
     name="interactions-molter",
     version=version,
-    link="https://github.com/Astrea49/interactions-molter",
+    link="https://github.com/interactions-py/molter/tree/main/examples",
     description="Message commands in interactions.py! A port of dis-snek's molter.",
     packages=["interactions.ext.molter"],
     requirements=["discord-py-interactions>=4.1.0"],

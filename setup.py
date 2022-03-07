@@ -13,7 +13,7 @@ setup(
     long_description=(Path(__file__).parent / "README.md").read_text(),
     long_description_content_type="text/markdown",
     author="Astrea49",
-    url="https://github.com/Astrea49/interactions-molter",
+    url="https://github.com/interactions-py/molter",
     version="0.1.0b",
     packages=["interactions.ext.molter"],
     python_requires=">=3.8.6",
