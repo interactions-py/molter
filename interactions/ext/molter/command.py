@@ -533,6 +533,9 @@ class MolterCommand:
 
         return wrapper
 
+    async def __call__(self, ctx: context.MolterContext):
+        return await self.invoke(ctx)
+
     async def invoke(self, ctx: context.MolterContext):
         # sourcery skip: remove-empty-nested-block, remove-redundant-if, remove-unnecessary-else
         callback = self.callback
