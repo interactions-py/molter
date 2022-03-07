@@ -169,9 +169,13 @@ class UserConverter(IDConverter[interactions.User]):
             if result:
                 result = interactions.User(**result)
         else:
-            # using the cache here isn't viable here - see GuildConverter's comment
-            # about why
-            # the same concept can be applied here.
+            # sadly, ids are the only viable way of getting
+            # accurate user objects in a reasonable manner
+            # if we did names, we would have to use the cache, which
+            # doesnt update on username changes or anything,
+            # and so may have the wrong name
+            # erroring out is better than wrong data to me
+            # though its easy enough subclassing this to change that
             pass
 
         if not result:
@@ -245,12 +249,10 @@ class GuildConverter(IDConverter[interactions.Guild]):
         if match:
             guild_id = int(match.group(1))
         else:
-            # sadly, ids are the only viable way of getting accurate guild objects
-            # in a reasonable, non-intensive manner
-            # if we did names, we would either have to:
-            # a: fetch the entire guild list, an expensive operation for large guilds
-            # b: use inter.py's self_guild cache, which is prone to being outdated
-            # and so may have the wrong name
+            # we can only use guild ids for the same reason we can only use user ids
+            # for the user converter
+            # there is an http endpoint to get all guilds a bot is in
+            # but if the bot has a ton of guilds, this would be too intensive
             raise errors.BadArgument(f'Guild "{argument}" not found.')
 
         try:
