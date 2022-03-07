@@ -9,6 +9,8 @@ This attempts to make the message command experience much like `discord.py`'s me
 
 **NOTE**: This is a work in progress! Some things may be broken, and some things may not work as they should. More features need to be added, too.
 
+**NOTE 2**: This extension is primarily developed by Astrea49. Direct questions about this to her, please!
+
 ## Installation
 
 ```
