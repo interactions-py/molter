@@ -662,3 +662,5 @@ def message_command(
 
 
 msg_command = message_command
+prefix_command = message_command
+text_based_command = message_command

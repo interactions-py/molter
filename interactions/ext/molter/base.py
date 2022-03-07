@@ -223,6 +223,8 @@ class Molter:
         return wrapper
 
     msg_command = message_command
+    prefix_command = message_command
+    text_based_command = message_command
 
     async def generate_prefixes(
         self, bot: interactions.Client, msg: interactions.Message
