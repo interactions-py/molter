@@ -1,5 +1,7 @@
 import functools
 import inspect
+import logging
+import traceback
 import typing
 from hashlib import md5
 
@@ -12,6 +14,8 @@ from interactions import ext
 __all__ = ("__version__", "base", "MolterExtension", "Molter", "setup")
 
 __version__ = "0.1.0"
+
+logger: logging.Logger = logging.getLogger("molter")
 
 
 class VersionAuthorPatch(ext.VersionAuthor):
@@ -108,6 +112,11 @@ class Molter:
             Turning this on may make the bot respond slower or faster depending on \
             the converters used in the command, but usually is slower. \
             Defaults to False.
+        on_molter_command_error (`typing.Callable`, optional): An asynchronous function \
+            that takes in a `MolterContext` and `Exception` to handle errors that occur \
+            when running molter commands. By default, molter will output the error to \
+            the default logging place and ignore it. The error event can also be listened \
+            to by listening to the "on_molter_command_error" event.
 
         If neither `default_prefix` or `generate_prefixes` are provided, the bot
         defaults to using it being mentioned as its prefix.
@@ -124,6 +133,9 @@ class Molter:
             ],
         ] = None,
         fetch_data_for_context: bool = False,
+        on_molter_command_error: typing.Callable[
+            [MolterContext, Exception], typing.Coroutine
+        ] = None,
     ) -> None:
 
         self.bot = bot
@@ -139,10 +151,17 @@ class Molter:
             if generate_prefixes is not None
             else self.generate_prefixes
         )
+        self.on_molter_command_error = (
+            on_molter_command_error
+            if on_molter_command_error is not None
+            else self.on_molter_command_error
+        )
 
         self.bot.msg_commands = {}
         self.bot.add_message_command = self.add_message_command
+
         self.bot.event(self._handle_msg_commands, "on_message_create")
+        self.bot.event(self.on_molter_command_error, "on_molter_command_error")
 
     def add_message_command(self, command: MolterCommand):
         if command.parent:
@@ -231,6 +250,25 @@ class Molter:
     ):
         return self.default_prefix
 
+    async def on_molter_command_error(self, context: MolterContext, error: Exception):
+        """
+        A function that is called when a molter command errors out.
+        By default, this function outputs to the default logging place.
+
+        Args:
+            context (`MolterContext`): The context in which the error occured.
+            error (`Exception`): The exception raised by the molter command.
+        """
+
+        out = traceback.format_exception(type(error), error, error.__traceback__)
+        logger.error(
+            "Ignoring exception in {}:{}{}".format(
+                f"molter cmd / {context.invoked_name}",
+                "\n" if len(out) > 1 else " ",
+                "".join(out),
+            ),
+        )
+
     async def _create_context(self, msg: interactions.Message) -> MolterContext:
         msg._client = self.bot._http  # weirdly enough, sometimes this isn't set right
 
@@ -294,7 +332,13 @@ class Molter:
                 context.invoked_name = context.invoked_name.strip()
                 context.args = utils.get_args_from_str(context.content_parameters)
                 context.command = command
-                await command(context)
+
+                try:
+                    await command(context)
+                except Exception as e:
+                    self.bot._websocket._dispatch.dispatch(
+                        "on_molter_command_error", context, e
+                    )
 
 
 def setup(
@@ -307,6 +351,9 @@ def setup(
         ],
     ] = None,
     fetch_data_for_context: bool = False,
+    on_molter_command_error: typing.Callable[
+        [MolterContext, Exception], typing.Coroutine
+    ] = None,
     *args,
     **kwargs,
 ) -> None:
@@ -314,4 +361,10 @@ def setup(
     Allows setup of the bot.
     This method is not recommended - use `Molter` directly instead.
     """
-    Molter(bot, default_prefix, generate_prefixes, fetch_data_for_context)
+    Molter(
+        bot,
+        default_prefix,
+        generate_prefixes,
+        fetch_data_for_context,
+        on_molter_command_error,
+    )
