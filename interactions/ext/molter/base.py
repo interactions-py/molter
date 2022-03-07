@@ -50,7 +50,10 @@ base = BasePatch(
     name="interactions-molter",
     version=version,
     link="https://github.com/interactions-py/molter/tree/main/examples",
-    description="Message commands in interactions.py! A port of dis-snek's molter.",
+    description=(
+        "An extension library for interactions.py to add text-based commands. Ported"
+        " from dis-snek."
+    ),
     packages=["interactions.ext.molter"],
     requirements=["discord-py-interactions>=4.1.0"],
 )

@@ -3,7 +3,7 @@
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
 # interactions-molter
-Message commands in interactions.py! A port of [`dis-snek`'s `molter`](https://github.com/Discord-Snake-Pit/molter).
+An extension library for interactions.py to add text-based (AKA message or prefix) commands! Ported from [`dis-snek`'s `molter`](https://github.com/Discord-Snake-Pit/molter).
 
 This attempts to make the message command experience much like `discord.py`'s message commands, though it is *not* 1:1 on purpose.
 
