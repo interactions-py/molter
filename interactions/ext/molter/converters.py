@@ -156,6 +156,7 @@ class UserConverter(IDConverter[interactions.User]):
         return f"{user.username}#{user.discriminator}"
 
     async def convert(self, ctx: MolterContext, argument: str) -> interactions.User:
+        # sourcery skip: remove-redundant-pass
         match = self._get_id_match(argument) or re.match(
             r"<@!?([0-9]{15,})>$", argument
         )
@@ -168,25 +169,10 @@ class UserConverter(IDConverter[interactions.User]):
             if result:
                 result = interactions.User(**result)
         else:
-            if len(argument) > 5 and argument[-5] == "#":
-                result = next(
-                    (
-                        u
-                        for u in ctx.client._http.cache.users.values
-                        if self._get_tag(u) == argument
-                    ),
-                    None,
-                )
-
-            if not result:
-                result = next(
-                    (
-                        u
-                        for u in ctx.client._http.cache.users.values
-                        if u.username == argument
-                    ),
-                    None,
-                )
+            # using the cache here isn't viable here - see GuildConverter's comment
+            # about why
+            # the same concept can be applied here.
+            pass
 
         if not result:
             raise errors.BadArgument(f'User "{argument}" not found.')
