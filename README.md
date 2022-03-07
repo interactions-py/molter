@@ -1,3 +1,7 @@
+[![PyPI](https://img.shields.io/pypi/v/interactions-molter)](https://pypi.org/project/interactions-molter/)
+[![Downloads](https://static.pepy.tech/personalized-badge/interactions-molter?period=total&units=abbreviation&left_color=grey&right_color=green&left_text=pip%20installs)](https://pepy.tech/project/interactions-molter)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+
 # interactions-molter
 Message commands in interactions.py! A port of [`dis-snek`'s `molter`](https://github.com/Discord-Snake-Pit/molter).
 
@@ -8,7 +12,7 @@ This attempts to make the message command experience much like `discord.py`'s me
 ## Installation
 
 ```
-pip install git+https://github.com/Astrea49/interactions-molter.git
+pip install interactions-molter
 ```
 
 ## Example
