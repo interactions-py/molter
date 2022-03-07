@@ -34,9 +34,9 @@ async def when_mentioned(bot: interactions.Client, _):
     return [f"<@{bot.me.id}> ", f"<@!{bot.me.id}> "]  # type: ignore
 
 
-async def when_mentioned_or(*prefixes: str):
+def when_mentioned_or(*prefixes: str):
     async def new_mention(bot: interactions.Client, _):
-        return await when_mentioned(bot, _) + list(prefixes)
+        return (await when_mentioned(bot, _)) + list(prefixes)
 
     return new_mention
 
