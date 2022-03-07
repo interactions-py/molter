@@ -54,9 +54,9 @@ def setup(bot: interactions.Client):
     Extend(bot)
 ```
 
-## Examples
+### Other examples
 
-To view more examples and understand how `molter` works, take a look at the `examples` folder in this repository.
+To view more examples and understand how `molter` works, take a look at the [`examples`](https://github.com/Astrea49/interactions-molter/tree/main/examples) folder in this repository.
 
 ## Credit
 
