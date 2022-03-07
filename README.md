@@ -59,5 +59,4 @@ def setup(bot: interactions.Client):
 Thanks to both [`dis-snek`](https://github.com/Discord-Snake-Pit/Dis-Snek) and [Toricane's `interactions-message-commands`](https://github.com/Toricane/interactions-message-commands) for a decent part of this! They both had a huge influence over how this port was designed.
 
 ## TODO
-- Add in converters for standard `interactions` objects.
 - Add in documentation, or at least fill out docstrings.
