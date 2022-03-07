@@ -152,9 +152,6 @@ class MemberConverter(IDConverter[interactions.Member]):
 
 
 class UserConverter(IDConverter[interactions.User]):
-    def _get_tag(self, user: interactions.User):
-        return f"{user.username}#{user.discriminator}"
-
     async def convert(self, ctx: MolterContext, argument: str) -> interactions.User:
         # sourcery skip: remove-redundant-pass
         match = self._get_id_match(argument) or re.match(
