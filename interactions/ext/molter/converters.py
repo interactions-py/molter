@@ -286,8 +286,15 @@ class MessageConverter(Converter[interactions.Message]):
             else int(data["channel_id"])
         )
 
+        # this guild checking is technically unnecessary, but we do it just in case
+        # it means a user cant just provide an invalid guild id and still get a message
+        guild_id = ctx.guild_id if not data.get("guild_id") else data["guild_id"]
+        guild_id = int(guild_id) if guild_id != "@me" else None
+
         try:
             message_data = await ctx.client._http.get_message(channel_id, message_id)
+            if message_data.get("guild_id") != guild_id:
+                raise errors.BadArgument(f'Message "{argument}" not found.')
             return interactions.Message(**message_data, _client=ctx.client._http)
         except inter_errors.HTTPException:
             raise errors.BadArgument(f'Message "{argument}" not found.')
