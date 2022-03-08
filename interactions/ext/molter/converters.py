@@ -284,7 +284,7 @@ class MessageConverter(Converter[interactions.Message]):
         # this guild checking is technically unnecessary, but we do it just in case
         # it means a user cant just provide an invalid guild id and still get a message
         guild_id = ctx.guild_id if not data.get("guild_id") else data["guild_id"]
-        guild_id = int(guild_id) if guild_id != "@me" else None
+        guild_id = str(guild_id) if guild_id != "@me" else None
 
         try:
             message_data = await ctx._http.get_message(channel_id, message_id)
