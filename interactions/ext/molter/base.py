@@ -78,10 +78,12 @@ class MolterExtension(interactions.Extension):
             self, predicate=lambda x: isinstance(x, MolterCommand)
         ):
             cmd: MolterCommand
-            cmd.extension = self
-            cmd.callback = functools.partial(cmd.callback, self)
-            self._msg_commands.append(cmd)
-            self.client.add_message_command(cmd)
+
+            if not cmd.parent:  # we don't want to add subcommands
+                cmd.extension = self
+                cmd.callback = functools.partial(cmd.callback, self)
+                self._msg_commands.append(cmd)
+                self.client.add_message_command(cmd)
 
         return self
 
