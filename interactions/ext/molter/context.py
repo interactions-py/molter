@@ -54,7 +54,7 @@ class MolterContext:
         ):
             if not inter_object or "_client" not in inter_object.__slots__:
                 continue
-            inter_object._client = self.client._http
+            inter_object._client = self._http
 
     @property
     def author(self):
@@ -88,6 +88,11 @@ class MolterContext:
             self.message.content, f"{self.prefix}{self.invoked_name}"
         ).strip()
 
+    @property
+    def _http(self) -> interactions.HTTPClient:
+        """Returns the HTTP client the client has."""
+        return self.client._http
+
     async def get_channel(self):
         """Gets the channel where the message was sent."""
         if self.channel:
@@ -114,7 +119,7 @@ class MolterContext:
         if self.channel:
             return self.channel
 
-        if channel := self.client._http.cache.channels.get(str(self.channel_id)):
+        if channel := self._http.cache.channels.get(str(self.channel_id)):
             return channel.value
 
         return await self.get_channel()

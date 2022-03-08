@@ -132,16 +132,13 @@ class MemberConverter(IDConverter[interactions.Member]):
                 query, _, _ = argument.rpartition("#")
 
             members_data = await _wrap_http_exception(
-                ctx.client._http.search_guild_members(
-                    int(ctx.guild_id), query, limit=100
-                )
+                ctx._http.search_guild_members(int(ctx.guild_id), query, limit=100)
             )
             if not members_data:
                 raise errors.BadArgument(f'Member "{argument}" not found.')
 
             members = [
-                interactions.Member(**data, _client=ctx.client._http)
-                for data in members_data
+                interactions.Member(**data, _client=ctx._http) for data in members_data
             ]
             result = self._get_member_from_list(members, argument)
 
@@ -160,9 +157,7 @@ class UserConverter(IDConverter[interactions.User]):
         result = None
 
         if match:
-            result = await _wrap_http_exception(
-                ctx.client._http.get_user(int(match.group(1)))
-            )
+            result = await _wrap_http_exception(ctx._http.get_user(int(match.group(1))))
             if result:
                 result = interactions.User(**result)
         else:
@@ -192,10 +187,10 @@ class ChannelConverter(IDConverter[interactions.Channel]):
 
         if match:
             result = await _wrap_http_exception(
-                ctx.client._http.get_channel(int(match.group(1)))
+                ctx._http.get_channel(int(match.group(1)))
             )
             if result:
-                result = interactions.Channel(**result, _client=ctx.client._http)
+                result = interactions.Channel(**result, _client=ctx._http)
         elif ctx.guild_id:
             guild = await ctx.get_guild()
             channels = await guild.get_all_channels()
@@ -253,8 +248,8 @@ class GuildConverter(IDConverter[interactions.Guild]):
             raise errors.BadArgument(f'Guild "{argument}" not found.')
 
         try:
-            guild_data = await ctx.client._http.get_guild(guild_id)
-            return interactions.Guild(**guild_data, _client=ctx.client._http)
+            guild_data = await ctx._http.get_guild(guild_id)
+            return interactions.Guild(**guild_data, _client=ctx._http)
         except inter_errors.HTTPException:
             raise errors.BadArgument(f'Guild "{argument}" not found.')
 
@@ -292,10 +287,10 @@ class MessageConverter(Converter[interactions.Message]):
         guild_id = int(guild_id) if guild_id != "@me" else None
 
         try:
-            message_data = await ctx.client._http.get_message(channel_id, message_id)
+            message_data = await ctx._http.get_message(channel_id, message_id)
             if message_data.get("guild_id") != guild_id:
                 raise errors.BadArgument(f'Message "{argument}" not found.')
-            return interactions.Message(**message_data, _client=ctx.client._http)
+            return interactions.Message(**message_data, _client=ctx._http)
         except inter_errors.HTTPException:
             raise errors.BadArgument(f'Message "{argument}" not found.')
 
