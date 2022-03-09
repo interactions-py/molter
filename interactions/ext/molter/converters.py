@@ -288,8 +288,19 @@ class MessageConverter(Converter[interactions.Message]):
 
         try:
             message_data = await ctx._http.get_message(channel_id, message_id)
-            if message_data.get("guild_id") != guild_id:
+
+            msg_guild_id: typing.Optional[str] = message_data.get("guild_id")
+            if not msg_guild_id:
+                # because discord is inconsistent with providing the guild id key for
+                # messages, we have to do a request to get the channel's guild id
+                # this does mean we have to waste a request, but oh well
+                channel_data = await ctx._http.get_channel(channel_id)
+                msg_guild_id = channel_data.get("guild_id")
+
+            if msg_guild_id != guild_id:
                 raise errors.BadArgument(f'Message "{argument}" not found.')
+
+            message_data = await ctx._http.get_message(channel_id, message_id)
             return interactions.Message(**message_data, _client=ctx._http)
         except inter_errors.HTTPException:
             raise errors.BadArgument(f'Message "{argument}" not found.')
