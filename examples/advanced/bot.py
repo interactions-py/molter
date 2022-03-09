@@ -14,12 +14,19 @@ bot = interactions.Client(
 async def generate_prefixes(bot: interactions.Client, msg: interactions.Message):
     # Fetching from the database could look something like:
     # prefixes = await bot.db.fetch(
-    # f"SELECT prefixes FROM guild_config WHERE guild_id = {msg.guild_id}"
+    #   f"SELECT prefixes FROM guild_config WHERE guild_id = {msg.guild_id}"
     # )
 
     # But to make this example work, we'll just do:
     prefixes = ("!",)
     return await molter.when_mentioned_or(*prefixes)(bot, msg)
+    # when_mentioned_or is a utility function that allows you to specify
+    # prefixes as well as having the bot respond to it being mentioned.
+    # Using it in your own generate_prefixes is a bit weird and looks
+    # like this, though using it in the generate_prefixes argument
+    # is as simple as:
+    # generate_prefixes=when_mentioned_or("prefix", "prefix2")
+    # when_mentioned is also a function provided, if you want to use it.
 
     # Note that if you just want to have a static prefix (or prefixes),
     # use the default_prefix argument for Molter instead.
@@ -47,6 +54,7 @@ molt = molter.Molter(
 # the user will need to do !test.
 # Furthermore, we used ignore_extra so that if a user provided an argument beyond
 # a member/user, the command will error out.
+# (Using "!test @Astrea e" would error out, for example.)
 
 # Speaking of that argument, it's a weird one, isn't it?
 # Unions (or | if you're using Python 3.10) are a way of specifying a variable
@@ -63,7 +71,7 @@ molt = molter.Molter(
 # IDs, etc, and converts them into objects.
 # Unlike discord.py or dis-snek though, some objects can only take IDs due to technical
 # reasons.
-# Converters will be talked more in-depth in the extension
+# Converters will be talked more in-depth in the extension.
 @molt.message_command(name="test", ignore_extra=False)
 async def a_name(
     ctx: molter.MolterContext,

@@ -5,8 +5,8 @@ from interactions.ext import molter
 
 
 # Welcome to custom converters!
-# You can ou can subclass Converter to do whatever you wish.
-# All converters must have an asynchronous convert function that takes in
+# You can subclass Converter to do whatever you wish.
+# All converters must have an asynchronous "convert" function that takes in
 # the context and an argument.
 # From there, you can do what you want, really.
 class JudgementConverter(molter.Converter):
@@ -18,7 +18,7 @@ class JudgementConverter(molter.Converter):
 # As so, using the converter guide it has can at least help you out a little.
 # Thinking converters are 1:1 to discord.py's converters is a bad idea, but
 # you can kind of see how they could work and play with them from there.
-# This includes Optional and Greedy, which are in molter if you wish.
+# This includes Optional and Greedy, which are in molter.
 # https://discordpy.readthedocs.io/en/v1.7.3/ext/commands/commands.html#converters
 
 # Hopefully this throws you off a bit looking at this for the first time.
@@ -62,8 +62,8 @@ class Extension(molter.MolterExtension):
 
     # And a quick example of Greedy.
     # To put it simply, Greedy will convert every new argument passed to it until it can't
-    # anymore - for example, "!greedy_example 1124 124 23 e" would convert until the e, stop,
-    # and return a list of [1124, 124, 23].
+    # anymore - for example, "!greedy_example 1124 124 23 e" would convert until the "e",
+    # stop, and return a list of [1124, 124, 23].
     @molter.msg_command()
     async def greedy_example(
         self, ctx: molter.MolterContext, greedy_ints: molter.Greedy[int]

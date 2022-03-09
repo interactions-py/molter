@@ -12,14 +12,15 @@ bot = interactions.Client(
 )
 
 # Here's where things get interesting, huh?
-# We actually do not want to load molter as an extension - it'll work, but this
-# is the preferred way.
+# We actually do not want to load molter as an extension - it'll work, but
+# initializing Molter itself is the preferred way.
 # This line lets molter establish its hooks into interactions.py, allowing for
 # its commands to work how they should.
 
 # An important thing to note here is that you can set the default prefix or give
 # an asynchronous function to generate prefixes via this.
 # Look into default_prefix and generate_prefixes if you are interested in that.
+# This is also explored in the advanced example.
 # If neither of them are specified, molter will default to using the bot's mention
 # as the prefix.
 
@@ -30,7 +31,8 @@ molt = molter.Molter(bot)
 
 
 # And this is how we declare message commands in our runner file.
-# You can use message_command or msg_command to do this - they do the same thing.
+# You can use a variety of aliases for message_command, including msg_command
+# and prefix_command - they all do the same thing.
 # The decorator has a variety of options that you can use, but for this example,
 # we're only using aliases - a way of allowing a command to be run under different
 # commands.
