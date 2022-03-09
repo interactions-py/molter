@@ -4,6 +4,7 @@ import inspect
 import typing
 
 import attr
+import typing_extensions
 
 import interactions
 from . import context
@@ -102,9 +103,36 @@ def _convert_to_bool(argument: str) -> bool:
         raise errors.BadArgument(f"{argument} is not a recognised boolean option.")
 
 
+def _get_from_anno_type(anno: typing_extensions.Annotated, name):
+    """
+    Handles dealing with Annotated annotations, getting their
+    (first and what should be only) type annotation.
+    This allows correct type hinting with, say, Converters,
+    for example.
+    """
+    # this is treated how it usually is during runtime
+    # the first argument is ignored and the rest is treated as is
+
+    args = typing_extensions.get_args(anno)[1:]
+    if len(args) > 1:
+        # we could treat this as a union, but id rather have a user
+        # use an actual union type here
+        # from what ive seen, multiple arguments for Annotated are
+        # meant to be used to narrow down a type rather than
+        # be used as a union anyways
+        raise ValueError(
+            f"{_get_name(anno)} for {name} has more than 2 arguments, which is"
+            " unsupported."
+        )
+
+    return args[0]
+
+
 def _get_converter(
     anno: type, name: str
 ) -> typing.Callable[[context.MolterContext, str], typing.Any]:  # type: ignore
+    if typing_extensions.get_origin(anno) == typing_extensions.Annotated:
+        anno = _get_from_anno_type(anno, name)
 
     if converter := converters.INTER_OBJECT_TO_CONVERTER.get(anno, None):
         return converter().convert
@@ -115,8 +143,8 @@ def _get_converter(
     elif hasattr(anno, "convert") and inspect.isfunction(anno.convert):  # type: ignore
         return anno.convert  # type: ignore
 
-    elif typing.get_origin(anno) is typing.Literal:
-        literals = typing.get_args(anno)
+    elif typing_extensions.get_origin(anno) is typing.Literal:
+        literals = typing_extensions.get_args(anno)
         return converters.LiteralConverter(literals).convert
 
     elif inspect.isfunction(anno):
@@ -147,11 +175,17 @@ def _greedy_parse(greedy: converters.Greedy, param: inspect.Parameter):
     if param.kind in {param.KEYWORD_ONLY, param.VAR_POSITIONAL}:
         raise ValueError("Greedy[...] cannot be a variable or keyword-only argument.")
 
-    arg = typing.get_args(greedy)[0]
+    arg = typing_extensions.get_args(greedy)[0]
+
+    if typing_extensions.get_origin(arg) == typing_extensions.Annotated:
+        arg = _get_from_anno_type(arg, param.name)
+
     if arg in {NoneType, str}:
         raise ValueError(f"Greedy[{_get_name(arg)}] is invalid.")
 
-    if typing.get_origin(arg) in UNION_TYPES and NoneType in typing.get_args(arg):
+    if typing_extensions.get_origin(
+        arg
+    ) in UNION_TYPES and NoneType in typing_extensions.get_args(arg):
         raise ValueError(f"Greedy[{repr(arg)}] is invalid.")
 
     return arg
@@ -177,13 +211,13 @@ def _get_params(func: typing.Callable):
 
         cmd_param.type = anno = param.annotation
 
-        if typing.get_origin(anno) == converters.Greedy:
+        if typing_extensions.get_origin(anno) == converters.Greedy:
             anno = _greedy_parse(anno, param)
             cmd_param.greedy = True
 
-        if typing.get_origin(anno) in UNION_TYPES:
+        if typing_extensions.get_origin(anno) in UNION_TYPES:
             cmd_param.union = True
-            for arg in typing.get_args(anno):
+            for arg in typing_extensions.get_args(anno):
                 if arg != NoneType:
                     converter = _get_converter(arg, name)
                     cmd_param.converters.append(converter)
@@ -231,7 +265,7 @@ async def _convert(param: CommandParameter, ctx: context.MolterContext, arg: str
             converted = param.default
             used_default = True
         else:
-            union_types = typing.get_args(param.type)
+            union_types = typing_extensions.get_args(param.type)
             union_names = tuple(_get_name(t) for t in union_types)
             union_types_str = ", ".join(union_names[:-1]) + f", or {union_names[-1]}"
             raise errors.BadArgument(
@@ -395,14 +429,14 @@ class MolterCommand:
             name = param.name
 
             if not param.greedy and param.union:
-                union_args = typing.get_args(anno)
+                union_args = typing_extensions.get_args(anno)
                 if len(union_args) == 2 and param.optional:
                     anno = union_args[0]
 
-            if typing.get_origin(anno) is typing.Literal:
+            if typing_extensions.get_origin(anno) is typing.Literal:
                 name = "|".join(
                     f'"{v}"' if isinstance(v, str) else str(v)
-                    for v in typing.get_args(anno)
+                    for v in typing_extensions.get_args(anno)
                 )
 
             if param.optional and param.default is not None:
