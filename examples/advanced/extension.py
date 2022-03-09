@@ -1,5 +1,7 @@
 from typing import Optional
 
+from typing_extensions import Annotated
+
 import interactions
 from interactions.ext import molter
 
@@ -34,17 +36,24 @@ class Extension(molter.MolterExtension):
     # system) are. Just use this method in extensions and the other method in the main
     # file and you'll be good.
 
-    # Second, you can see us using the converter here. Yes, you can typehint it just
-    # like that. Typehints will complain, though you can technically work around that
-    # by using typing's TYPE_CHECKING or by subclassing Converter and whatever class
-    # the final result is, to varying results.
-    # molter does not and will not do this for you due to the multitude of ways of
-    # doing it - it's up to you.
+    # Second, you can see us using the converter here.
+    # It should be noted that you can do something as simple as
+    # "judgment: JudgementConverter" to use a converter, but using Annotated (possible
+    # in Python 3.8 via typing_extensions, installed as a requirement when installing
+    # molter) allows us to properly typehint this function without making our static
+    # type checker complain.
+    # More details about Annotated can be found here:
+    # https://docs.python.org/3/library/typing.html#typing.Annotated
+
+    # molter has support for Annotated, although it only works for Annotated types
+    # with two arguments in them - it will error out if more are provided.
+    # You may also use other ways of making your type checker happy rather than just
+    # use Annotated, if you desire.
     @molter.msg_command()
     async def random_role(
-        self, ctx: molter.MolterContext, judgment: JudgementConverter
+        self, ctx: molter.MolterContext, judgment: Annotated[str, JudgementConverter]
     ):
-        await ctx.reply(judgment)  # type: ignore
+        await ctx.reply(judgment)
 
     # Just a quick example of Optional here.
     # If an argument is marked as optional and has no default value, it'll returns None
