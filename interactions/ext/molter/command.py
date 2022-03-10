@@ -20,9 +20,6 @@ __all__ = (
     "msg_command",
 )
 
-
-# since MISSING isn't actually a sentinel, we do this just in case
-MISSING = interactions.MISSING()
 # 3.8+ compatibility
 NoneType = type(None)
 
@@ -49,7 +46,7 @@ class CommandParameter:
 
     @property
     def optional(self) -> bool:
-        return self.default != MISSING
+        return self.default != interactions.MISSING
 
 
 @attr.define(slots=True)
@@ -206,7 +203,7 @@ def _get_params(func: typing.Callable):
         cmd_param = CommandParameter()
         cmd_param.name = name
         cmd_param.default = (
-            param.default if param.default is not param.empty else MISSING
+            param.default if param.default is not param.empty else interactions.MISSING
         )
 
         cmd_param.type = anno = param.annotation
@@ -248,7 +245,7 @@ def _get_params(func: typing.Callable):
 
 
 async def _convert(param: CommandParameter, ctx: context.MolterContext, arg: str):
-    converted = MISSING
+    converted = interactions.MISSING
     for converter in param.converters:
         try:
             converted = await maybe_coroutine(converter, ctx, arg)
@@ -260,7 +257,7 @@ async def _convert(param: CommandParameter, ctx: context.MolterContext, arg: str
                 raise errors.BadArgument(str(e)) from e
 
     used_default = False
-    if converted == MISSING:
+    if converted == interactions.MISSING:
         if param.optional:
             converted = param.default
             used_default = True
