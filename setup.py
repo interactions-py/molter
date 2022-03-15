@@ -11,13 +11,13 @@ setup(
     name="interactions-molter",
     description=(
         "An extension library for interactions.py to add text-based commands! Ported"
-        " from dis-snek.."
+        " from dis-snek."
     ),
     long_description=(Path(__file__).parent / "README.md").read_text(),
     long_description_content_type="text/markdown",
     author="Astrea49",
     url="https://github.com/interactions-py/molter",
-    version="0.1.0b",
+    version="0.2.0",
     packages=["interactions.ext.molter"],
     python_requires=">=3.8.6",
     install_requires=requirements,

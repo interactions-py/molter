@@ -39,9 +39,9 @@ class Extension(molter.MolterExtension):
     # Second, you can see us using the converter here.
     # It should be noted that you can do something as simple as
     # "judgment: JudgementConverter" to use a converter, but using Annotated (possible
-    # in Python 3.8 via typing_extensions, installed as a requirement when installing
-    # molter) allows us to properly typehint this function without making our static
-    # type checker complain.
+    # in Python 3.8 via typing_extensions - installed as a requirement when installing
+    # molter - or on 3.9+ simply via typing) allows us to properly typehint this
+    # function without making our static type checker complain.
     # More details about Annotated can be found here:
     # https://docs.python.org/3/library/typing.html#typing.Annotated
 
