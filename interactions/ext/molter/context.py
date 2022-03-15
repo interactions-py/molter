@@ -38,6 +38,8 @@ class MolterContext:
 
     invoked_name: str = attrs.field(default=None)
     """The name/alias used to invoke the command."""
+    content_parameters: str = attrs.field(default=None)
+    """The message content without the prefix or command."""
     command: "MolterCommand" = attrs.field(default=None)
     """The command invoked."""
     args: typing.List[str] = attrs.field(factory=list)
@@ -80,13 +82,6 @@ class MolterContext:
     def guild_id(self) -> typing.Optional[interactions.Snowflake]:
         """Returns the guild ID where the message was sent, if applicable."""
         return self.message.guild_id
-
-    @property
-    def content_parameters(self) -> str:
-        """The message content without the prefix or command."""
-        return utils.remove_prefix(
-            self.message.content, f"{self.prefix}{self.invoked_name}"
-        ).strip()
 
     @property
     def _http(self) -> interactions.HTTPClient:

@@ -307,14 +307,12 @@ class Molter:
             (prefix for prefix in prefixes if msg.content.startswith(prefix)), None
         ):
             context = await self._create_context(msg)
-            context.invoked_name = ""
             context.prefix = prefix_used
-
-            content = utils.remove_prefix(msg.content, prefix_used)
+            context.content_parameters = utils.remove_prefix(msg.content, prefix_used)
             command = self.bot
 
             while True:
-                first_word: str = utils.get_first_word(content)  # type: ignore
+                first_word: str = utils.get_first_word(context.content_parameters)  # type: ignore
                 if isinstance(command, MolterCommand):
                     new_command = command.command_dict.get(first_word)
                 else:
@@ -323,15 +321,19 @@ class Molter:
                     break
 
                 command = new_command
-                context.invoked_name += f"{first_word} "
-
-                content = utils.remove_prefix(content, first_word).strip()
+                context.content_parameters = utils.remove_prefix(
+                    context.content_parameters, first_word
+                ).strip()
 
             if isinstance(command, interactions.Client):
                 command = None
 
             if command and command.enabled:
-                context.invoked_name = context.invoked_name.strip()
+                # this looks ugly, ik
+                context.invoked_name = utils.remove_suffix(
+                    utils.remove_prefix(msg.content, prefix_used),
+                    context.content_parameters,
+                ).strip()
                 context.args = utils.get_args_from_str(context.content_parameters)
                 context.command = command
 

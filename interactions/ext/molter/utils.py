@@ -8,6 +8,7 @@ __all__ = (
     "SnowflakeType",
     "OptionalSnowflakeType",
     "remove_prefix",
+    "remove_suffix",
     "when_mentioned",
     "when_mentioned_or",
     "maybe_coroutine",
@@ -28,6 +29,10 @@ OptionalSnowflakeType = typing.Optional[SnowflakeType]
 
 def remove_prefix(string: str, prefix: str):
     return string[len(prefix) :] if string.startswith(prefix) else string[:]
+
+
+def remove_suffix(string: str, suffix: str):
+    return string[: -len(suffix)] if string.endswith(suffix) else string[:]
 
 
 async def when_mentioned(bot: interactions.Client, _):
