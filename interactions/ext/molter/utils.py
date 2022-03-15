@@ -13,7 +13,6 @@ __all__ = (
     "when_mentioned_or",
     "maybe_coroutine",
     "ARG_PARSE_REGEX",
-    "INITIAL_WORD_REGEX",
     "MENTION_REGEX",
     "get_args_from_str",
     "get_first_word",
@@ -79,8 +78,6 @@ _pending_regex = _pending_regex.replace("1", f"[{''.join(list(_quotes.keys()))}]
 _pending_regex = _pending_regex.replace("2", f"[{''.join(list(_quotes.values()))}]")
 
 ARG_PARSE_REGEX = re.compile(_pending_regex)
-INITIAL_WORD_REGEX = re.compile(r"^([^\s]+)\s*?")
-
 MENTION_REGEX = re.compile(r"@(everyone|here|[!&]?[0-9]{17,20})")
 
 
@@ -104,10 +101,7 @@ def get_first_word(text: str) -> typing.Optional[str]:
     Returns:
          The requested word
     """
-    found = INITIAL_WORD_REGEX.findall(text)
-    if len(found) == 0:
-        return None
-    return found[0]
+    return split[0] if (split := text.split(maxsplit=1)) else None
 
 
 def escape_mentions(content: str) -> str:
