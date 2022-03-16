@@ -420,20 +420,20 @@ class MolterCommand:
             anno = param.type
             name = param.name
 
-            if typing.get_origin(anno) == typing_extensions.Annotated:
+            if typing_extensions.get_origin(anno) == typing_extensions.Annotated:
                 # message commands can only have two arguments in an annotation anyways
-                anno = typing.get_args(anno)[1]
+                anno = typing_extensions.get_args(anno)[1]
 
             if not param.greedy and param.union:
-                union_args = typing.get_args(anno)
+                union_args = typing_extensions.get_args(anno)
                 if len(union_args) == 2 and param.optional:
                     anno = union_args[0]
 
-            if typing.get_origin(anno) is typing.Literal:
+            if typing_extensions.get_origin(anno) is typing.Literal:
                 # it's better to list the values it can be than display the variable name itself
                 name = "|".join(
                     f'"{v}"' if isinstance(v, str) else str(v)
-                    for v in typing.get_args(anno)
+                    for v in typing_extensions.get_args(anno)
                 )
 
             # we need to do a lot of manipulations with the signature
