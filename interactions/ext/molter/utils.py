@@ -27,18 +27,59 @@ OptionalSnowflakeType = typing.Optional[SnowflakeType]
 
 
 def remove_prefix(string: str, prefix: str):
+    """
+    Removes a prefix from a string if present.
+
+    Args:
+        string (`str`): The string to remove the prefix from.
+        prefix (`str`): The prefix to remove.
+
+    Returns:
+        The string without the prefix.
+    """
     return string[len(prefix) :] if string.startswith(prefix) else string[:]
 
 
 def remove_suffix(string: str, suffix: str):
+    """
+    Removes a suffix from a string if present.
+
+    Args:
+        string (`str`): The string to remove the suffix from.
+        suffix (`str`): The suffix to remove.
+
+    Returns:
+        The string without the suffix.
+    """
     return string[: -len(suffix)] if string.endswith(suffix) else string[:]
 
 
 async def when_mentioned(bot: interactions.Client, _):
+    """
+    Returns a list of the bot's mentions.
+
+    Returns:
+        A list of the bot's possible mentions.
+    """
     return [f"<@{bot.me.id}> ", f"<@!{bot.me.id}> "]  # type: ignore
 
 
 def when_mentioned_or(*prefixes: str):
+    """
+    Returns a list of the bot's mentions plus whatever prefixes are provided.
+
+    This is intended to be used with initializing molter. If you wish to use
+    it in your own function, you will need to do something similar to:
+
+    `await when_mentioned_or(*prefixes)(bot, msg)`
+
+    Args:
+        prefixes (`str`): Prefixes to include alongside mentions.
+
+    Returns:
+        A list of the bot's mentions plus whatever prefixes are provided.
+    """
+
     async def new_mention(bot: interactions.Client, _):
         return (await when_mentioned(bot, _)) + list(prefixes)
 
@@ -46,6 +87,7 @@ def when_mentioned_or(*prefixes: str):
 
 
 async def maybe_coroutine(func: typing.Callable, *args, **kwargs):
+    """Allows running either a coroutine or a function."""
     if inspect.iscoroutinefunction(func):
         return await func(*args, **kwargs)
     else:

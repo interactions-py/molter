@@ -33,6 +33,8 @@ except ImportError:  # 3.8-3.9
 
 @attr.define(slots=True)
 class CommandParameter:
+    """An object representing parameters in a command."""
+
     name: str = attr.field(default=None)
     default: typing.Optional[typing.Any] = attr.field(default=None)
     type: type = attr.field(default=None)
@@ -51,6 +53,11 @@ class CommandParameter:
 
 @attr.define(slots=True)
 class ArgsIterator:
+    """
+    An iterator over the arguments of a command.
+    Has functions to control the iteration.
+    """
+
     args: typing.Sequence[str] = attr.field(converter=tuple)
     index: int = attr.field(init=False, default=0)
     length: int = attr.field(init=False, default=0)
@@ -384,6 +391,7 @@ class MolterCommand:
 
     @property
     def qualified_name(self):
+        """Returns the full qualified name of this command."""
         name_deq = collections.deque()
         command = self
 
@@ -396,13 +404,13 @@ class MolterCommand:
 
     @property
     def all_commands(self):
+        """Returns all unique subcommands underneath this command."""
         names = {c.name for c in self.command_dict.values()}
         return tuple(self.command_dict[n] for n in names)
 
     @property
     def signature(self) -> str:
         """Returns a POSIX-like signature useful for help command output."""
-
         if not self.params:
             return ""
 
@@ -460,6 +468,7 @@ class MolterCommand:
         return " ".join(results)
 
     def add_command(self, cmd: "MolterCommand"):
+        """Adds a command as a subcommand to this command."""
         cmd.parent = self  # just so we know this is a subcommand
 
         cmd_names = frozenset(self.command_dict)
@@ -479,6 +488,10 @@ class MolterCommand:
             self.command_dict[alias] = cmd
 
     def remove_command(self, name: str):
+        """
+        Removes a command as a subcommand from this command.
+        If an alias is specified, only the alias will be removed.
+        """
         command = self.command_dict.pop(name, None)
 
         if command is None or name in command.aliases:
@@ -488,6 +501,13 @@ class MolterCommand:
             self.command_dict.pop(alias, None)
 
     def get_command(self, name: str):
+        """
+        Gets a subcommand from this command. Can get subcommands of subcommands if needed.
+        Args:
+            name (`str`): The command to search for.
+        Returns:
+            `MolterCommand`: The command object, if found.
+        """
         if " " not in name:
             return self.command_dict.get(name)
 
@@ -573,9 +593,19 @@ class MolterCommand:
         return wrapper
 
     async def __call__(self, ctx: context.MolterContext):
+        """
+        Runs the callback of this command.
+        Args:
+            ctx (`context.MolterContext`): The context to use for this command.
+        """
         return await self.invoke(ctx)
 
     async def invoke(self, ctx: context.MolterContext):
+        """
+        Runs the callback of this command.
+        Args:
+            ctx (`context.MolterContext`): The context to use for this command.
+        """
         # sourcery skip: remove-empty-nested-block, remove-redundant-if, remove-unnecessary-else
         callback = self.callback
 

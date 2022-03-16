@@ -11,6 +11,8 @@ class MolterException(Exception):
 
 
 class BadArgument(MolterException):
+    """A special exception for invalid arguments when using molter commands."""
+
     def __init__(self, message: typing.Optional[str] = None, *args: typing.Any) -> None:
         if message is not None:
             message = escape_mentions(message)

@@ -166,6 +166,12 @@ class Molter:
         self.bot.event(self.on_molter_command_error, "on_molter_command_error")
 
     def add_message_command(self, command: MolterCommand):
+        """Add a message command to the client.
+        This method gets monkeypatched into the client when molter is initialized.
+
+        Args:
+            command (`MolterCommand`): The command to add.
+        """
         if command.parent:
             return  # silent return to ignore subcommands - hacky, ik
 
@@ -256,6 +262,17 @@ class Molter:
     async def generate_prefixes(
         self, bot: interactions.Client, msg: interactions.Message
     ):
+        """
+        Generates a list of prefixes a message command can have based on the bot and message.
+        This can be overwritten by passing a function to generate_prefixes on initialization.
+
+        Args:
+            bot (`interactions.Client`): The bot instance.
+            msg (`interactions.Message`): The message sent.
+
+        Returns:
+            `str` | `Iterable[str]`: The prefix(es) to check for.
+        """
         return self.default_prefix
 
     async def on_molter_command_error(self, context: MolterContext, error: Exception):
@@ -278,6 +295,15 @@ class Molter:
         )
 
     async def _create_context(self, msg: interactions.Message) -> MolterContext:
+        """
+        Creates a `MolterContext` object from the given message.
+
+        Args:
+            msg (`interactions.Message`): The message to create a context from.
+
+        Returns:
+            `MolterContext`: The context generated.
+        """
         msg._client = self.bot._http  # weirdly enough, sometimes this isn't set right
 
         channel = None
@@ -299,6 +325,13 @@ class Molter:
         )
 
     async def _handle_msg_commands(self, msg: interactions.Message):
+        """
+        Determines if a command is being triggered and dispatch it.
+
+        Args:
+            msg (`interactions.Message`): The message created.
+        """
+
         if not msg.content or msg.author.bot:
             return
 
