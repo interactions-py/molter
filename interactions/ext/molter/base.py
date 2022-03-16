@@ -191,6 +191,7 @@ class Molter:
         aliases: typing.List[str] = None,
         help: str = None,
         brief: str = None,
+        usage: str = None,
         enabled: bool = True,
         hidden: bool = False,
         ignore_extra: bool = True,
@@ -210,6 +211,10 @@ class Molter:
 
             brief (`str`, optional): The short help text for the command.
             Defaults to the first line of the help text, if there is one.
+
+            usage(`str`, optional): A string displaying how the command
+            can be used. If no string is set, it will default to the
+            command's signature. Useful for help commands.
 
             enabled (`bool`, optional): Whether this command can be run
             at all. Defaults to True.
@@ -234,6 +239,7 @@ class Molter:
                 aliases=aliases or [],
                 help=help,
                 brief=brief,
+                usage=usage,  # type: ignore
                 enabled=enabled,
                 hidden=hidden,
                 ignore_extra=ignore_extra,
