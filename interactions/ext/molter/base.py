@@ -13,7 +13,7 @@ from interactions import ext
 
 __all__ = ("__version__", "base", "MolterExtension", "Molter", "setup")
 
-__version__ = "0.3.0"
+__version__ = "0.3.1"
 
 logger: logging.Logger = logging.getLogger("molter")
 
