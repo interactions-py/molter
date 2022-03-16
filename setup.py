@@ -17,7 +17,7 @@ setup(
     long_description_content_type="text/markdown",
     author="Astrea49",
     url="https://github.com/interactions-py/molter",
-    version="0.2.0",
+    version="0.3.0",
     packages=["interactions.ext.molter"],
     python_requires=">=3.8.6",
     install_requires=requirements,
