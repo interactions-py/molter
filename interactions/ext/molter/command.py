@@ -3,7 +3,7 @@ import functools
 import inspect
 import typing
 
-import attr
+import attrs
 import typing_extensions
 
 import interactions
@@ -31,36 +31,36 @@ except ImportError:  # 3.8-3.9
     UNION_TYPES = {typing.Union}
 
 
-@attr.define(slots=True)
+@attrs.define(slots=True)
 class CommandParameter:
     """An object representing parameters in a command."""
 
-    name: str = attr.field(default=None)
-    default: typing.Optional[typing.Any] = attr.field(default=None)
-    type: type = attr.field(default=None)
+    name: str = attrs.field(default=None)
+    default: typing.Optional[typing.Any] = attrs.field(default=None)
+    type: type = attrs.field(default=None)
     converters: typing.List[
         typing.Callable[[context.MolterContext, str], typing.Any]
-    ] = attr.field(factory=list)
-    greedy: bool = attr.field(default=False)
-    union: bool = attr.field(default=False)
-    variable: bool = attr.field(default=False)
-    consume_rest: bool = attr.field(default=False)
+    ] = attrs.field(factory=list)
+    greedy: bool = attrs.field(default=False)
+    union: bool = attrs.field(default=False)
+    variable: bool = attrs.field(default=False)
+    consume_rest: bool = attrs.field(default=False)
 
     @property
     def optional(self) -> bool:
         return self.default != interactions.MISSING
 
 
-@attr.define(slots=True)
+@attrs.define(slots=True)
 class ArgsIterator:
     """
     An iterator over the arguments of a command.
     Has functions to control the iteration.
     """
 
-    args: typing.Sequence[str] = attr.field(converter=tuple)
-    index: int = attr.field(init=False, default=0)
-    length: int = attr.field(init=False, default=0)
+    args: typing.Sequence[str] = attrs.field(converter=tuple)
+    index: int = attrs.field(init=False, default=0)
+    length: int = attrs.field(init=False, default=0)
 
     def __iter__(self):
         self.length = len(self.args)
@@ -309,33 +309,33 @@ async def _greedy_convert(
     return greedy_args, broke_off
 
 
-@attr.define(
+@attrs.define(
     slots=True,
     kw_only=True,
 )
 class MolterCommand:
-    extension: typing.Any = attr.field(default=None)
+    extension: typing.Any = attrs.field(default=None)
     "The extension this command belongs to."
-    enabled: bool = attr.field(default=True)
+    enabled: bool = attrs.field(default=True)
     "Whether this can be run at all."
-    callback: typing.Callable[..., typing.Coroutine] = attr.field(
+    callback: typing.Callable[..., typing.Coroutine] = attrs.field(
         default=None,
     )
     "The coroutine to be called for this command"
-    name: str = attr.field()
+    name: str = attrs.field()
     "The name of the command."
 
-    params: typing.List[CommandParameter] = attr.field()
+    params: typing.List[CommandParameter] = attrs.field()
     "The paramters of the command."
-    aliases: typing.List[str] = attr.field(
+    aliases: typing.List[str] = attrs.field(
         factory=list,
     )
     "The list of aliases the command can be invoked under."
-    hidden: bool = attr.field(
+    hidden: bool = attrs.field(
         default=False,
     )
     "If `True`, the default help command does not show this in the help output."
-    ignore_extra: bool = attr.field(
+    ignore_extra: bool = attrs.field(
         default=True,
     )
     """
@@ -343,19 +343,19 @@ class MolterCommand:
     requirements are met (e.g. ?foo a b c when only expecting a and b).
     Otherwise, an error is raised. Defaults to True.
     """
-    help: typing.Optional[str] = attr.field()
+    help: typing.Optional[str] = attrs.field()
     """The long help text for the command."""
-    brief: typing.Optional[str] = attr.field()
+    brief: typing.Optional[str] = attrs.field()
     "The short help text for the command."
-    parent: typing.Optional["MolterCommand"] = attr.field(
+    parent: typing.Optional["MolterCommand"] = attrs.field(
         default=None,
     )
     "The parent command, if applicable."
-    command_dict: typing.Dict[str, "MolterCommand"] = attr.field(
+    command_dict: typing.Dict[str, "MolterCommand"] = attrs.field(
         factory=dict,
     )
     "A dict of a subcommand's name and the subcommand for this command."
-    _usage: typing.Optional[str] = attr.field(default=None)
+    _usage: typing.Optional[str] = attrs.field(default=None)
 
     @params.default  # type: ignore
     def _fill_params(self):
