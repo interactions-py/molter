@@ -28,21 +28,11 @@ class VersionAuthorPatch(ext.VersionAuthor):
 
 
 class VersionPatch(ext.Version):
-    __slots__ = ("_major", "_minor", "_patch", "_authors", "__version", "__alphanum")
+    __slots__ = ("_authors",)
 
 
 class BasePatch(ext.Base):
-    __slots__ = (
-        "_packages",
-        "_requirements",
-        "_kwargs",
-        "__objects",
-        "version",
-        "name",
-        "description",
-        "long_description",
-        "link",
-    )
+    __slots__ = ("long_description",)
 
 
 version = VersionPatch(
