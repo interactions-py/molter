@@ -91,6 +91,7 @@ class MemberConverter(IDConverter[interactions.Member]):
     def _get_member_from_list(
         self, members: typing.List[interactions.Member], argument: str
     ):
+        # sourcery skip: assign-if-exp
         result = None
         if len(argument) > 5 and argument[-5] == "#":
             result = next(
@@ -276,14 +277,12 @@ class MessageConverter(Converter[interactions.Message]):
 
         message_id = int(data["message_id"])
         channel_id = (
-            int(ctx.channel_id)
-            if not data.get("channel_id")
-            else int(data["channel_id"])
+            int(data["channel_id"]) if data.get("channel_id") else int(ctx.channel_id)
         )
 
         # this guild checking is technically unnecessary, but we do it just in case
         # it means a user cant just provide an invalid guild id and still get a message
-        guild_id = ctx.guild_id if not data.get("guild_id") else data["guild_id"]
+        guild_id = data["guild_id"] if data.get("guild_id") else ctx.guild_id
         guild_id = str(guild_id) if guild_id != "@me" else None
 
         try:
