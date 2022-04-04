@@ -44,7 +44,7 @@ async def generate_prefixes(bot: interactions.Client, msg: interactions.Message)
 # interactions.py works, taking up time and generally being somewhat slow.
 # However, if you are okay with that slowdown and want those two anyways without
 # fetching it yourself, you can pass fetch_data_for_context=True to do so.
-molt = molter.Molter(
+molt = molter.setup(
     client, generate_prefixes=generate_prefixes, fetch_data_for_context=True
 )
 
