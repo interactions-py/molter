@@ -179,16 +179,16 @@ class Molter:
         if command.parent:
             return  # silent return to ignore subcommands - hacky, ik
 
-        if command.name not in self.client.molter.msg_commands:
-            self.client.molter.msg_commands[command.name] = command
+        if command.name not in self.msg_commands:
+            self.msg_commands[command.name] = command
         else:
             raise ValueError(
                 f"Duplicate Command! Multiple commands share the name {command.name}"
             )
 
         for alias in command.aliases:
-            if alias not in self.client.molter.msg_commands:
-                self.client.molter.msg_commands[alias] = command
+            if alias not in self.msg_commands:
+                self.msg_commands[alias] = command
                 continue
             raise ValueError(
                 f"Duplicate Command! Multiple commands share the name/alias {alias}"
@@ -254,7 +254,7 @@ class Molter:
                 hidden=hidden,
                 ignore_extra=ignore_extra,
             )
-            self.client.molter.add_message_command(cmd)
+            self.add_message_command(cmd)
             return cmd
 
         return wrapper
