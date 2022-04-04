@@ -28,8 +28,8 @@ class JudgementConverter(molter.Converter):
 # reasons. We can make molter commands work by using the MolterExtension class
 # however, as it adds the necessary code and injects to make them work.
 class Extension(molter.MolterExtension):
-    def __init__(self, bot: interactions.Client):
-        self.bot = bot
+    def __init__(self, client: interactions.Client):
+        self.client = client
 
     # First off - you'll notice how the way to declare a molter/message command
     # is different in extensions - this is just due to how extensions (and any similar
@@ -82,5 +82,5 @@ class Extension(molter.MolterExtension):
 
 
 # Nothing new here in terms of extensions.
-def setup(bot: interactions.Client):
-    Extension(bot)
+def setup(client: interactions.Client):
+    Extension(client)
