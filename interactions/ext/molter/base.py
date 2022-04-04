@@ -406,12 +406,35 @@ def setup(
     ] = None,
     *args,
     **kwargs,
-) -> None:
+) -> Molter:
     """
-    Allows setup of the client.
-    This method is not recommended - use `Molter` directly instead.
+    Allows setup of Molter through normal extension loaded.
+
+    Parameters:
+        client (`interactions.Client`): The client instance.
+        default_prefix (`str | typing.Iterable[str]`, optional): \
+            The default prefix to use. Defaults to None.
+        generate_prefixes (`typing.Callable`, optional): An asynchronous function \
+            that takes in a `Client` and `Message` object and returns either a \
+            string or an iterable of strings. Defaults to None.
+        fetch_data_for_context (`bool`): If molter should attempt to fetch extra \
+            data, like the `Guild` and `Channel` where the message was sent. \
+            Turning this on may make the bot respond slower or faster depending on \
+            the converters used in the command, but usually is slower. \
+            Defaults to False.
+        on_molter_command_error (`typing.Callable`, optional): An asynchronous function \
+            that takes in a `MolterContext` and `Exception` to handle errors that occur \
+            when running molter commands. By default, molter will output the error to \
+            the default logging place and ignore it. The error event can also be listened \
+            to by listening to the "on_molter_command_error" event.
+
+        If neither `default_prefix` or `generate_prefixes` are provided, the bot
+        defaults to using it being mentioned as its prefix.
+
+    Returns:
+        `Molter`: The class that deals with all things Molter.
     """
-    Molter(
+    return Molter(
         client,
         default_prefix,
         generate_prefixes,
