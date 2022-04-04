@@ -3,7 +3,7 @@ from typing import Union
 import interactions
 from interactions.ext import molter
 
-bot = interactions.Client(
+client = interactions.Client(
     token="YOUR TOKEN HERE",
     intents=interactions.Intents.DEFAULT | interactions.Intents.GUILD_MESSAGE_CONTENT,
 )
@@ -45,7 +45,7 @@ async def generate_prefixes(bot: interactions.Client, msg: interactions.Message)
 # However, if you are okay with that slowdown and want those two anyways without
 # fetching it yourself, you can pass fetch_data_for_context=True to do so.
 molt = molter.Molter(
-    bot, generate_prefixes=generate_prefixes, fetch_data_for_context=True
+    client, generate_prefixes=generate_prefixes, fetch_data_for_context=True
 )
 
 
@@ -81,5 +81,5 @@ async def a_name(
 
 
 # Loading the other file to this example, don't mind me.
-bot.load("extension")
-bot.start()
+client.load("extension")
+client.start()
