@@ -103,7 +103,7 @@ class Molter:
     The main part of the extension. Deals with injecting itself in the first place.
 
     Parameters:
-        bot (`interactions.Client`): The bot instance.
+        client (`interactions.Client`): The client instance.
         default_prefix (`str | typing.Iterable[str]`, optional): \
             The default prefix to use. Defaults to None.
         generate_prefixes (`typing.Callable`, optional): An asynchronous function \
@@ -126,7 +126,7 @@ class Molter:
 
     def __init__(
         self,
-        bot: interactions.Client,
+        client: interactions.Client,
         default_prefix: typing.Union[str, typing.Iterable[str]] = None,
         generate_prefixes: typing.Callable[
             [interactions.Client, interactions.Message],
@@ -141,9 +141,9 @@ class Molter:
     ) -> None:
 
         # typehinting funkyness for better typehints
-        bot = typing.cast(MolterInjectedClient, bot)
+        client = typing.cast(MolterInjectedClient, client)
 
-        self.bot = bot
+        self.client = client
         self.default_prefix = default_prefix
         self.fetch_data_for_context = fetch_data_for_context
         self.msg_commands: typing.Dict[str, MolterCommand] = {}
@@ -164,10 +164,10 @@ class Molter:
         )
 
         # this allows us to use a (hopefully) non-conflicting namespace
-        self.bot.molter = self
+        self.client.molter = self
 
-        self.bot.event(self._handle_msg_commands, "on_message_create")
-        self.bot.event(self.on_molter_command_error, "on_molter_command_error")
+        self.client.event(self._handle_msg_commands, "on_message_create")
+        self.client.event(self.on_molter_command_error, "on_molter_command_error")
 
     def add_message_command(self, command: MolterCommand):
         """Add a message command to the client.
@@ -179,16 +179,16 @@ class Molter:
         if command.parent:
             return  # silent return to ignore subcommands - hacky, ik
 
-        if command.name not in self.bot.molter.msg_commands:
-            self.bot.molter.msg_commands[command.name] = command
+        if command.name not in self.client.molter.msg_commands:
+            self.client.molter.msg_commands[command.name] = command
         else:
             raise ValueError(
                 f"Duplicate Command! Multiple commands share the name {command.name}"
             )
 
         for alias in command.aliases:
-            if alias not in self.bot.molter.msg_commands:
-                self.bot.molter.msg_commands[alias] = command
+            if alias not in self.client.molter.msg_commands:
+                self.client.molter.msg_commands[alias] = command
                 continue
             raise ValueError(
                 f"Duplicate Command! Multiple commands share the name/alias {alias}"
@@ -254,7 +254,7 @@ class Molter:
                 hidden=hidden,
                 ignore_extra=ignore_extra,
             )
-            self.bot.molter.add_message_command(cmd)
+            self.client.molter.add_message_command(cmd)
             return cmd
 
         return wrapper
@@ -264,14 +264,14 @@ class Molter:
     text_based_command = message_command
 
     async def generate_prefixes(
-        self, bot: interactions.Client, msg: interactions.Message
+        self, client: interactions.Client, msg: interactions.Message
     ):
         """
-        Generates a list of prefixes a message command can have based on the bot and message.
+        Generates a list of prefixes a message command can have based on the client and message.
         This can be overwritten by passing a function to generate_prefixes on initialization.
 
         Args:
-            bot (`interactions.Client`): The bot instance.
+            client (`interactions.Client`): The client instance.
             msg (`interactions.Message`): The message sent.
 
         Returns:
@@ -308,7 +308,8 @@ class Molter:
         Returns:
             `MolterContext`: The context generated.
         """
-        msg._client = self.bot._http  # weirdly enough, sometimes this isn't set right
+        # weirdly enough, sometimes this isn't set right
+        msg._client = self.client._http
 
         channel = None
         guild = None
@@ -320,7 +321,7 @@ class Molter:
                 guild = await msg.get_guild()
 
         return MolterContext(  # type: ignore
-            client=self.bot,
+            client=self.client,
             message=msg,
             user=msg.author,
             member=msg.member,
@@ -339,7 +340,7 @@ class Molter:
         if not msg.content or msg.author.bot:
             return
 
-        prefixes = await self.generate_prefixes(self.bot, msg)
+        prefixes = await self.generate_prefixes(self.client, msg)
 
         if isinstance(prefixes, str):
             # its easier to treat everything as if it may be an iterable
@@ -354,7 +355,7 @@ class Molter:
             context.content_parameters = utils.remove_prefix(msg.content, prefix_used)
             command: typing.Optional[
                 typing.Union[Molter, MolterCommand]
-            ] = self.bot.molter
+            ] = self.client.molter
 
             while True:
                 first_word: str = utils.get_first_word(context.content_parameters)  # type: ignore
@@ -385,13 +386,13 @@ class Molter:
                 try:
                     await command(context)
                 except Exception as e:
-                    self.bot._websocket._dispatch.dispatch(
+                    self.client._websocket._dispatch.dispatch(
                         "on_molter_command_error", context, e
                     )
 
 
 def setup(
-    bot: interactions.Client,
+    client: interactions.Client,
     default_prefix: typing.Union[str, typing.Iterable[str]] = None,
     generate_prefixes: typing.Callable[
         [interactions.Client, interactions.Message],
@@ -407,11 +408,11 @@ def setup(
     **kwargs,
 ) -> None:
     """
-    Allows setup of the bot.
+    Allows setup of the client.
     This method is not recommended - use `Molter` directly instead.
     """
     Molter(
-        bot,
+        client,
         default_prefix,
         generate_prefixes,
         fetch_data_for_context,
