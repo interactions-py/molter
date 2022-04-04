@@ -11,7 +11,14 @@ from .command import MolterCommand
 from .context import MolterContext
 from interactions import ext
 
-__all__ = ("__version__", "base", "MolterExtension", "Molter", "setup")
+__all__ = (
+    "__version__",
+    "base",
+    "MolterInjectedClient",
+    "MolterExtension",
+    "Molter",
+    "setup",
+)
 
 __version__ = "0.3.1"
 
