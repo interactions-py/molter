@@ -65,7 +65,7 @@ class MolterInjectedClient(interactions.Client):
 class MolterExtension(interactions.Extension):
     """An extension that allows you to use molter commands in them."""
 
-    client: MolterInjectedClient
+    client: interactions.Client
     _molter_msg_commands: typing.List[MolterCommand]
 
     def __new__(
@@ -73,6 +73,9 @@ class MolterExtension(interactions.Extension):
     ) -> "interactions.Extension":
         self: "MolterExtension" = super().__new__(cls, client, *args, **kwargs)  # type: ignore
         self._molter_msg_commands = []
+
+        # typehinting funkyness for better typehints
+        self.client = typing.cast(MolterInjectedClient, self.client)
 
         for _, cmd in inspect.getmembers(
             self, predicate=lambda x: isinstance(x, MolterCommand)
@@ -88,6 +91,9 @@ class MolterExtension(interactions.Extension):
         return self
 
     def teardown(self):
+        # typehinting funkyness for better typehints
+        self.client = typing.cast(MolterInjectedClient, self.client)
+
         for cmd in self._molter_msg_commands:
             names_to_remove = cmd.aliases.copy()
             names_to_remove.append(cmd.name)
