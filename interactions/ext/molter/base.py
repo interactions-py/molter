@@ -53,9 +53,17 @@ base = BasePatch(
 )
 
 
+class MolterInjectedClient(interactions.Client):
+    """A semi-stub for Clients injected with Molter."""
+
+    msg_commands: typing.Dict[str, MolterCommand]
+    add_message_command: typing.Callable[[MolterCommand], None]
+
+
 class MolterExtension(interactions.Extension):
     """An extension that allows you to use molter commands in them."""
 
+    client: MolterInjectedClient
     _msg_commands: typing.List[MolterCommand]
 
     def __new__(
@@ -129,6 +137,9 @@ class Molter:
             [MolterContext, Exception], typing.Coroutine
         ] = None,
     ) -> None:
+
+        # typehinting funkyness for better typehints
+        bot = typing.cast(MolterInjectedClient, bot)
 
         self.bot = bot
         self.default_prefix = default_prefix
