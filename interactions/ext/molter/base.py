@@ -54,23 +54,25 @@ base = BasePatch(
 
 
 class MolterInjectedClient(interactions.Client):
-    """A semi-stub for Clients injected with Molter."""
+    """
+    A semi-stub for Clients injected with Molter.
+    This should only be used for typehinting.
+    """
 
-    msg_commands: typing.Dict[str, MolterCommand]
-    add_message_command: typing.Callable[[MolterCommand], None]
+    molter: "Molter"
 
 
 class MolterExtension(interactions.Extension):
     """An extension that allows you to use molter commands in them."""
 
     client: MolterInjectedClient
-    _msg_commands: typing.List[MolterCommand]
+    _molter_msg_commands: typing.List[MolterCommand]
 
     def __new__(
         cls, client: interactions.Client, *args, **kwargs
     ) -> "interactions.Extension":
         self: "MolterExtension" = super().__new__(cls, client, *args, **kwargs)  # type: ignore
-        self._msg_commands = []
+        self._molter_msg_commands = []
 
         for _, cmd in inspect.getmembers(
             self, predicate=lambda x: isinstance(x, MolterCommand)
@@ -80,18 +82,18 @@ class MolterExtension(interactions.Extension):
             if not cmd.parent:  # we don't want to add subcommands
                 cmd.extension = self
                 cmd.callback = functools.partial(cmd.callback, self)
-                self._msg_commands.append(cmd)
-                self.client.add_message_command(cmd)
+                self._molter_msg_commands.append(cmd)
+                self.client.molter.add_message_command(cmd)
 
         return self
 
     def teardown(self):
-        for cmd in self._msg_commands:
+        for cmd in self._molter_msg_commands:
             names_to_remove = cmd.aliases.copy()
             names_to_remove.append(cmd.name)
 
             for name in names_to_remove:
-                self.client.msg_commands.pop(name, None)
+                self.client.molter.msg_commands.pop(name, None)
 
         return super().teardown()
 
@@ -144,6 +146,7 @@ class Molter:
         self.bot = bot
         self.default_prefix = default_prefix
         self.fetch_data_for_context = fetch_data_for_context
+        self.msg_commands: typing.Dict[str, MolterCommand] = {}
 
         if default_prefix is None and generate_prefixes is None:
             # by default, use mentioning the bot as the prefix
@@ -160,8 +163,8 @@ class Molter:
             else self.on_molter_command_error
         )
 
-        self.bot.msg_commands = {}
-        self.bot.add_message_command = self.add_message_command
+        # this allows us to use a (hopefully) non-conflicting namespace
+        self.bot.molter = self
 
         self.bot.event(self._handle_msg_commands, "on_message_create")
         self.bot.event(self.on_molter_command_error, "on_molter_command_error")
@@ -176,16 +179,16 @@ class Molter:
         if command.parent:
             return  # silent return to ignore subcommands - hacky, ik
 
-        if command.name not in self.bot.msg_commands:
-            self.bot.msg_commands[command.name] = command
+        if command.name not in self.bot.molter.msg_commands:
+            self.bot.molter.msg_commands[command.name] = command
         else:
             raise ValueError(
                 f"Duplicate Command! Multiple commands share the name {command.name}"
             )
 
         for alias in command.aliases:
-            if alias not in self.bot.msg_commands:
-                self.bot.msg_commands[alias] = command
+            if alias not in self.bot.molter.msg_commands:
+                self.bot.molter.msg_commands[alias] = command
                 continue
             raise ValueError(
                 f"Duplicate Command! Multiple commands share the name/alias {alias}"
@@ -251,7 +254,7 @@ class Molter:
                 hidden=hidden,
                 ignore_extra=ignore_extra,
             )
-            self.bot.add_message_command(cmd)
+            self.bot.molter.add_message_command(cmd)
             return cmd
 
         return wrapper
@@ -349,7 +352,9 @@ class Molter:
             context = await self._create_context(msg)
             context.prefix = prefix_used
             context.content_parameters = utils.remove_prefix(msg.content, prefix_used)
-            command = self.bot
+            command: typing.Optional[
+                typing.Union[Molter, MolterCommand]
+            ] = self.bot.molter
 
             while True:
                 first_word: str = utils.get_first_word(context.content_parameters)  # type: ignore
@@ -365,7 +370,7 @@ class Molter:
                     context.content_parameters, first_word
                 ).strip()
 
-            if isinstance(command, interactions.Client):
+            if isinstance(command, Molter):
                 command = None
 
             if command and command.enabled:
