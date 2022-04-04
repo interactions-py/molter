@@ -7,6 +7,7 @@ from . import utils
 
 if typing.TYPE_CHECKING:
     from .command import MolterCommand
+    from .base import MolterInjectedClient
 
 __all__ = ("MolterContext",)
 
@@ -18,7 +19,7 @@ class MolterContext:
     This does not actually inherit from `interactions._Context`.
     """
 
-    client: interactions.Client = attrs.field()
+    client: "MolterInjectedClient" = attrs.field()
     """The bot instance."""
     message: interactions.Message = attrs.field()
     """The message this represents."""
