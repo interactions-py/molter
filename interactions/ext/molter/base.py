@@ -69,7 +69,7 @@ class MolterExtension(interactions.Extension):
     def __new__(
         cls, client: interactions.Client, *args, **kwargs
     ) -> "interactions.Extension":
-        self = super().__new__(cls, client, *args, **kwargs)
+        self: "MolterExtension" = super().__new__(cls, client, *args, **kwargs)  # type: ignore
         self._msg_commands = []
 
         for _, cmd in inspect.getmembers(
