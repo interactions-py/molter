@@ -25,11 +25,11 @@ pip install interactions-molter
 import interactions
 from interactions.ext import molter
 
-bot = interactions.Client(
+client = interactions.Client(
     token="TOKEN",
     intents=interactions.Intents.DEFAULT | interactions.Intents.GUILD_MESSAGE_CONTENT,
 )
-molt = molter.Molter(bot)
+molt = molter.setup(client)
 
 
 @molt.msg_command(aliases=["test2"])
@@ -37,7 +37,7 @@ async def test(ctx: molter.MolterContext, some_var: int):
     await ctx.reply(str(some_var))
 
 
-bot.start()
+client.start()
 ```
 
 ### Extension
@@ -49,15 +49,15 @@ from interactions.ext import molter
 # very important to use the below instead of Extension
 # message commands will not work otherwise
 class Extend(molter.MolterExtension):
-    def __init__(self, bot: interactions.Client):
-        self.bot = bot
+    def __init__(self, client: interactions.Client):
+        self.client = client
 
     @molter.msg_command()
     async def soup(self, ctx: molter.MolterContext):
         await ctx.reply("give soup")
 
-def setup(bot: interactions.Client):
-    Extend(bot)
+def setup(client: interactions.Client):
+    Extend(client)
 ```
 
 ### Other examples
