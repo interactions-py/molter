@@ -165,12 +165,12 @@ class Molter:
             # by default, use mentioning the bot as the prefix
             generate_prefixes = utils.when_mentioned
 
-        self.generate_prefixes = (
+        self.generate_prefixes = (  # type: ignore
             generate_prefixes
             if generate_prefixes is not None
             else self.generate_prefixes
         )
-        self.on_molter_command_error = (
+        self.on_molter_command_error = (  # type: ignore
             on_molter_command_error
             if on_molter_command_error is not None
             else self.on_molter_command_error
@@ -179,8 +179,8 @@ class Molter:
         # this allows us to use a (hopefully) non-conflicting namespace
         self.client.molter = self
 
-        self.client.event(self._handle_msg_commands, "on_message_create")
-        self.client.event(self.on_molter_command_error, "on_molter_command_error")
+        self.client.event(self._handle_msg_commands, "on_message_create")  # type: ignore
+        self.client.event(self.on_molter_command_error, "on_molter_command_error")  # type: ignore
 
     def add_message_command(self, command: MolterCommand):
         """Add a message command to the client.
@@ -278,7 +278,7 @@ class Molter:
 
     async def generate_prefixes(
         self, client: interactions.Client, msg: interactions.Message
-    ):
+    ) -> typing.Union[str, typing.Iterable[str]]:
         """
         Generates a list of prefixes a message command can have based on the client and message.
         This can be overwritten by passing a function to generate_prefixes on initialization.
@@ -290,7 +290,7 @@ class Molter:
         Returns:
             `str` | `Iterable[str]`: The prefix(es) to check for.
         """
-        return self.default_prefix
+        return self.default_prefix  # type: ignore
 
     async def on_molter_command_error(self, context: MolterContext, error: Exception):
         """
@@ -336,7 +336,7 @@ class Molter:
         return MolterContext(  # type: ignore
             client=self.client,
             message=msg,
-            user=msg.author,
+            user=msg.author,  # type: ignore
             member=msg.member,
             channel=channel,
             guild=guild,
