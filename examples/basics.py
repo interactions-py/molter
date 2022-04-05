@@ -6,7 +6,7 @@ from interactions.ext import molter
 # It's initializing the Client, providing our token and all.
 # Enabling the guild message intent is highly recommended, as otherwise you will
 # be limited to messages that ping the bot for message/prefix/molter commands.
-bot = interactions.Client(
+client = interactions.Client(
     token="YOUR TOKEN HERE",
     intents=interactions.Intents.DEFAULT | interactions.Intents.GUILD_MESSAGE_CONTENT,
 )
@@ -27,7 +27,7 @@ bot = interactions.Client(
 # There is also fetch_data_for_context - this will be talked more about in the
 # advanced example, though it is recommended to keep it off unless you really need
 # it.
-molt = molter.Molter(bot)
+molt = molter.setup(client)
 
 
 # And this is how we declare message commands in our runner file.
@@ -57,4 +57,4 @@ async def test(ctx: molter.MolterContext, a_number: int):
 
 
 # Normal bot starting, not much to say here.
-bot.start()
+client.start()
