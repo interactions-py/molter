@@ -13,9 +13,10 @@ client = interactions.Client(
 
 # Here's where things get interesting, huh?
 # We actually do not want to load molter as an extension - it'll work, but
-# initializing Molter itself is the preferred way.
-# This line lets molter establish its hooks into interactions.py, allowing for
-# its commands to work how they should.
+# initializing Molter itself via the setup method is the preferred way - using
+# molter.Molter is a close second, though
+# Regardless, this line lets molter establish its hooks into interactions.py,
+# allowing for its commands to work how they should.
 
 # An important thing to note here is that you can set the default prefix or give
 # an asynchronous function to generate prefixes via this.
