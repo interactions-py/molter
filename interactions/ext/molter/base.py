@@ -3,7 +3,6 @@ import inspect
 import logging
 import traceback
 import typing
-from hashlib import md5
 
 import interactions
 from . import utils
@@ -25,29 +24,12 @@ __version__ = "0.3.1"
 logger: logging.Logger = logging.getLogger("molter")
 
 
-class VersionAuthorPatch(ext.VersionAuthor):
-    def __init__(self, name, *, shared=False, active=True, email=None) -> None:
-        self.name = name
-        self._co_author = shared
-        self.active = active
-        self.email = email
-        self._hash = md5(self.__str__().encode("utf-8"))
-
-
-class VersionPatch(ext.Version):
-    __slots__ = ("_authors",)
-
-
-class BasePatch(ext.Base):
-    __slots__ = ("long_description",)
-
-
-version = VersionPatch(
+version = ext.Version(
     version=__version__,
-    authors=[VersionAuthorPatch("Astrea49")],
+    authors=[ext.VersionAuthor("Astrea49")],
 )
 
-base = BasePatch(
+base = ext.Base(
     name="interactions-molter",
     version=version,
     link="https://github.com/interactions-py/molter/tree/main/examples",
