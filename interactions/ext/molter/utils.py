@@ -126,10 +126,11 @@ MENTION_REGEX = re.compile(r"@(everyone|here|[!&]?[0-9]{17,20})")
 def get_args_from_str(input: str) -> list:
     """
     Get arguments from an input string.
+
     Args:
-        input: The string to process
+        input (`str`): The string to process.
     Returns:
-        A list of words
+        A list of arguments.
     """
     args = ARG_PARSE_REGEX.findall(input)
     return [(arg[1:-1] if arg[0] in _start_quotes else arg) for arg in args]
@@ -138,10 +139,11 @@ def get_args_from_str(input: str) -> list:
 def get_first_word(text: str) -> typing.Optional[str]:
     """
     Get a the first word in a string, regardless of whitespace type.
+
     Args:
-        text: The text to process
+        text (`str`): The text to process.
     Returns:
-         The requested word
+        The first word, if found.
     """
     return split[0] if (split := text.split(maxsplit=1)) else None
 
@@ -149,11 +151,12 @@ def get_first_word(text: str) -> typing.Optional[str]:
 def escape_mentions(content: str) -> str:
     """
     Escape mentions that could ping someone in a string.
-    note:
-        This does not escape channel mentions as they do not ping anybody.
+
+    This does not escape channel mentions as they do not ping anybody.
+
     Args:
-        content: The string to escape
+        content (`str`): The string to escape.
     Returns:
-        Processed string
+        The escaped string.
     """
     return MENTION_REGEX.sub("@\u200b\\1", content)
