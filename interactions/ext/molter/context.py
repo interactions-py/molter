@@ -125,6 +125,9 @@ class MolterContext:
         content: typing.Optional[str] = interactions.MISSING,  # type: ignore
         *,
         tts: typing.Optional[bool] = interactions.MISSING,  # type: ignore
+        files: typing.Optional[
+            typing.Union[interactions.File, typing.List[interactions.File]]
+        ] = interactions.MISSING,  # type: ignore
         embeds: typing.Optional[
             typing.Union["interactions.Embed", typing.List["interactions.Embed"]]
         ] = interactions.MISSING,  # type: ignore
@@ -152,6 +155,8 @@ class MolterContext:
         :param tts?: Whether the message utilizes the text-to-speech Discord \
             programme or not.
         :type tts: Optional[bool]
+        :param files?: A file or list of files to be attached to the message.
+        :type files: Optional[Union[File, List[File]]]
         :param embeds?: An embed, or list of embeds for the message.
         :type embeds: Optional[Union[Embed, List[Embed]]]
         :param allowed_mentions?: The message interactions/mention limits \
@@ -168,6 +173,7 @@ class MolterContext:
         return await channel.send(
             content,
             tts=tts,
+            files=files,
             embeds=embeds,
             allowed_mentions=allowed_mentions,
             components=components,
@@ -179,6 +185,9 @@ class MolterContext:
         content: typing.Optional[str] = interactions.MISSING,  # type: ignore
         *,
         tts: typing.Optional[bool] = interactions.MISSING,  # type: ignore
+        files: typing.Optional[
+            typing.Union[interactions.File, typing.List[interactions.File]]
+        ] = interactions.MISSING,  # type: ignore
         embeds: typing.Optional[
             typing.Union["interactions.Embed", typing.List["interactions.Embed"]]
         ] = interactions.MISSING,  # type: ignore
@@ -206,6 +215,8 @@ class MolterContext:
         :param tts?: Whether the message utilizes the text-to-speech Discord \
             programme or not.
         :type tts: Optional[bool]
+        :param files?: A file or list of files to be attached to the message.
+        :type files: Optional[Union[File, List[File]]]
         :param embeds?: An embed, or list of embeds for the message.
         :type embeds: Optional[Union[Embed, List[Embed]]]
         :param allowed_mentions?: The message interactions/mention limits \
@@ -221,6 +232,7 @@ class MolterContext:
         return await self.message.reply(
             content,
             tts=tts,
+            files=files,
             embeds=embeds,
             allowed_mentions=allowed_mentions,
             components=components,
