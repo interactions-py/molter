@@ -166,7 +166,6 @@ class Molter:
 
     def add_message_command(self, command: MolterCommand):
         """Add a message command to the client.
-        This method gets monkeypatched into the client when molter is initialized.
 
         Args:
             command (`MolterCommand`): The command to add.
