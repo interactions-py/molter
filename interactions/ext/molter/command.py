@@ -482,8 +482,8 @@ class MolterCommand:
                 )
 
             # we need to do a lot of manipulations with the signature
-            # string, so using a list as a string builder makes sense for performance
-            result_builder: list[str] = []
+            # string, so using a deque as a string builder makes sense for performance
+            result_builder: typing.Deque[str] = collections.deque()
 
             if param.optional and param.default is not None:
                 # it would be weird making it look like name=None
@@ -497,10 +497,10 @@ class MolterCommand:
 
             # surround the result with brackets
             if param.optional:
-                result_builder.insert(0, "[")
+                result_builder.appendleft("[")
                 result_builder.append("]")
             else:
-                result_builder.insert(0, "<")
+                result_builder.appendleft("<")
                 result_builder.append(">")
 
             if param.greedy:
