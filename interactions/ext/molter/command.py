@@ -313,6 +313,7 @@ async def _greedy_convert(
 @attrs.define(
     slots=True,
     kw_only=True,
+    hash=False,
 )
 class MolterCommand:
     extension: typing.Any = attrs.field(default=None)
@@ -376,6 +377,9 @@ class MolterCommand:
 
         if self.brief is None:
             self.brief = self.help.splitlines()[0] if self.help is not None else None
+
+    def __hash__(self):
+        return id(self)
 
     @property
     def usage(self) -> str:
