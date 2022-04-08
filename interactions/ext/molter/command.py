@@ -16,8 +16,9 @@ __all__ = (
     "CommandParameter",
     "ArgsIterator",
     "MolterCommand",
-    "message_command",
-    "msg_command",
+    "prefixed_command",
+    "prefix_command",
+    "text_based_command",
 )
 
 # 3.8+ compatibility
@@ -421,7 +422,7 @@ class MolterCommand:
             name = param.name
 
             if typing_extensions.get_origin(anno) == typing_extensions.Annotated:
-                # message commands can only have two arguments in an annotation anyways
+                # prefixed commands can only have two arguments in an annotation anyways
                 anno = typing_extensions.get_args(anno)[1]
 
             if not param.greedy and param.union:
@@ -540,7 +541,7 @@ class MolterCommand:
         ignore_extra: bool = True,
     ):
         """
-        A decorator to declare a subcommand for a Molter message command.
+        A decorator to declare a subcommand for a molter prefixed command.
 
         Parameters:
             name (`str`, optional): The name of the command.
@@ -675,7 +676,7 @@ class MolterCommand:
             return await callback(ctx, *new_args, **kwargs)
 
 
-def message_command(
+def prefixed_command(
     name: str = None,
     *,
     aliases: typing.List[str] = None,
@@ -687,7 +688,7 @@ def message_command(
     ignore_extra: bool = True,
 ):
     """
-    A decorator to declare a coroutine as a Molter message command.
+    A decorator to declare a coroutine as a molter prefixed command.
 
     Parameters:
         name (`str`, optional): The name of the command.
@@ -738,6 +739,5 @@ def message_command(
     return wrapper
 
 
-msg_command = message_command
-prefix_command = message_command
-text_based_command = message_command
+prefix_command = prefixed_command
+text_based_command = prefixed_command

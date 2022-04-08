@@ -34,8 +34,8 @@ base = ext.Base(
     version=version,
     link="https://github.com/interactions-py/molter/",
     description=(
-        "An extension library for interactions.py to add text-based commands. Ported"
-        " from dis-snek."
+        "An extension library for interactions.py to add prefixed commands. Ported from"
+        " dis-snek."
     ),
     packages=["interactions.ext.molter"],
     requirements=["discord-py-interactions>=4.1.0"],
@@ -55,13 +55,13 @@ class MolterExtension(interactions.Extension):
     """An extension that allows you to use molter commands in them."""
 
     client: interactions.Client
-    _molter_msg_commands: typing.List[MolterCommand]
+    _molter_prefixed_commands: typing.List[MolterCommand]
 
     def __new__(
         cls, client: interactions.Client, *args, **kwargs
     ) -> "interactions.Extension":
         self: "MolterExtension" = super().__new__(cls, client, *args, **kwargs)  # type: ignore
-        self._molter_msg_commands = []
+        self._molter_prefixed_commands = []
 
         # typehinting funkyness for better typehints
         self.client = typing.cast(MolterInjectedClient, self.client)
@@ -74,8 +74,8 @@ class MolterExtension(interactions.Extension):
             if not cmd.parent:  # we don't want to add subcommands
                 cmd.extension = self
                 cmd.callback = functools.partial(cmd.callback, self)
-                self._molter_msg_commands.append(cmd)
-                self.client.molter.add_message_command(cmd)
+                self._molter_prefixed_commands.append(cmd)
+                self.client.molter.add_prefixed_command(cmd)
 
         return self
 
@@ -83,12 +83,12 @@ class MolterExtension(interactions.Extension):
         # typehinting funkyness for better typehints
         self.client = typing.cast(MolterInjectedClient, self.client)
 
-        for cmd in self._molter_msg_commands:
+        for cmd in self._molter_prefixed_commands:
             names_to_remove = cmd.aliases.copy()
             names_to_remove.append(cmd.name)
 
             for name in names_to_remove:
-                self.client.molter.msg_commands.pop(name, None)
+                self.client.molter.prefixed_commands.pop(name, None)
 
         return super().teardown()
 
@@ -141,7 +141,7 @@ class Molter:
         self.client = client
         self.default_prefix = default_prefix
         self.fetch_data_for_context = fetch_data_for_context
-        self.msg_commands: typing.Dict[str, MolterCommand] = {}
+        self.prefixed_commands: typing.Dict[str, MolterCommand] = {}
 
         if default_prefix is None and generate_prefixes is None:
             # by default, use mentioning the bot as the prefix
@@ -161,11 +161,11 @@ class Molter:
         # this allows us to use a (hopefully) non-conflicting namespace
         self.client.molter = self
 
-        self.client.event(self._handle_msg_commands, "on_message_create")  # type: ignore
+        self.client.event(self._handle_prefixed_commands, "on_message_create")  # type: ignore
         self.client.event(self.on_molter_command_error, "on_molter_command_error")  # type: ignore
 
-    def add_message_command(self, command: MolterCommand):
-        """Add a message command to the client.
+    def add_prefixed_command(self, command: MolterCommand):
+        """Add a prefixed command to the client.
 
         Args:
             command (`MolterCommand`): The command to add.
@@ -173,22 +173,22 @@ class Molter:
         if command.parent:
             return  # silent return to ignore subcommands - hacky, ik
 
-        if command.name not in self.msg_commands:
-            self.msg_commands[command.name] = command
+        if command.name not in self.prefixed_commands:
+            self.prefixed_commands[command.name] = command
         else:
             raise ValueError(
                 f"Duplicate Command! Multiple commands share the name {command.name}"
             )
 
         for alias in command.aliases:
-            if alias not in self.msg_commands:
-                self.msg_commands[alias] = command
+            if alias not in self.prefixed_commands:
+                self.prefixed_commands[alias] = command
                 continue
             raise ValueError(
                 f"Duplicate Command! Multiple commands share the name/alias {alias}"
             )
 
-    def message_command(
+    def prefixed_command(
         self,
         name: str = None,
         *,
@@ -201,7 +201,7 @@ class Molter:
         ignore_extra: bool = True,
     ):
         """
-        A decorator to declare a coroutine as a Molter message command.
+        A decorator to declare a coroutine as a Molter prefixed command.
 
         Parameters:
             name (`str`, optional): The name of the command.
@@ -248,20 +248,19 @@ class Molter:
                 hidden=hidden,
                 ignore_extra=ignore_extra,
             )
-            self.add_message_command(cmd)
+            self.add_prefixed_command(cmd)
             return cmd
 
         return wrapper
 
-    msg_command = message_command
-    prefix_command = message_command
-    text_based_command = message_command
+    prefix_command = prefixed_command
+    text_based_command = prefixed_command
 
     async def generate_prefixes(
         self, client: interactions.Client, msg: interactions.Message
     ) -> typing.Union[str, typing.Iterable[str]]:
         """
-        Generates a list of prefixes a message command can have based on the client and message.
+        Generates a list of prefixes a prefixed command can have based on the client and message.
         This can be overwritten by passing a function to generate_prefixes on initialization.
 
         Args:
@@ -323,7 +322,7 @@ class Molter:
             guild=guild,
         )
 
-    async def _handle_msg_commands(self, msg: interactions.Message):
+    async def _handle_prefixed_commands(self, msg: interactions.Message):
         """
         Determines if a command is being triggered and dispatch it.
 
@@ -356,7 +355,7 @@ class Molter:
                 if isinstance(command, MolterCommand):
                     new_command = command.command_dict.get(first_word)
                 else:
-                    new_command = command.msg_commands.get(first_word)
+                    new_command = command.prefixed_commands.get(first_word)
                 if not new_command or not new_command.enabled:
                     break
 
