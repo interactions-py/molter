@@ -326,7 +326,7 @@ class MolterCommand:
     name: str = attrs.field()
     "The name of the command."
 
-    params: typing.List[CommandParameter] = attrs.field()
+    parameters: typing.List[CommandParameter] = attrs.field()
     "The paramters of the command."
     aliases: typing.List[str] = attrs.field(
         factory=list,
@@ -412,12 +412,12 @@ class MolterCommand:
     @property
     def signature(self) -> str:
         """Returns a POSIX-like signature useful for help command output."""
-        if not self.params:
+        if not self.parameters:
             return ""
 
         results = []
 
-        for param in self.params:
+        for param in self.parameters:
             anno = param.type
             name = param.name
 
@@ -610,7 +610,7 @@ class MolterCommand:
         # sourcery skip: remove-empty-nested-block, remove-redundant-if, remove-unnecessary-else
         callback = self.callback
 
-        if len(self.params) == 0:
+        if len(self.parameters) == 0:
             return await callback(ctx)
         else:
             new_args: list[typing.Any] = []
@@ -619,8 +619,8 @@ class MolterCommand:
             param_index = 0
 
             for arg in args:
-                while param_index < len(self.params):
-                    param = self.params[param_index]
+                while param_index < len(self.parameters):
+                    param = self.parameters[param_index]
 
                     if param.consume_rest:
                         arg = " ".join(args.consume_rest())
@@ -658,8 +658,8 @@ class MolterCommand:
                     if not used_default:
                         break
 
-            if param_index < len(self.params):
-                for param in self.params[param_index:]:
+            if param_index < len(self.parameters):
+                for param in self.parameters[param_index:]:
                     if not param.optional:
                         raise errors.BadArgument(
                             f"{param.name} is a required argument that is missing."
