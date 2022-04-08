@@ -8,6 +8,7 @@ import interactions
 from . import utils
 from .command import MolterCommand
 from .context import MolterContext
+from .converters import Converter
 from interactions import ext
 
 __all__ = (
@@ -199,6 +200,9 @@ class Molter:
         enabled: bool = True,
         hidden: bool = False,
         ignore_extra: bool = True,
+        type_to_converter: typing.Optional[
+            typing.Dict[type, typing.Type[Converter]]
+        ] = None,
     ):
         """
         A decorator to declare a coroutine as a Molter prefixed command.
@@ -232,6 +236,12 @@ class Molter:
             (e.g. ?foo a b c when only expecting a and b).
             Otherwise, an error is raised. Defaults to True.
 
+            type_to_converter (`dict[type, type[Converter]]`, optional): A dict
+            that associates converters for types. This allows you to use
+            native type annotations without needing to use `typing.Annotated`.
+            If this is not set, only dis-snek classes will be converted using
+            built-in converters.
+
         Returns:
             `MolterCommand`: The command object.
         """
@@ -247,6 +257,8 @@ class Molter:
                 enabled=enabled,
                 hidden=hidden,
                 ignore_extra=ignore_extra,
+                type_to_converter=type_to_converter  # type: ignore
+                or getattr(func, "_type_to_converter", {}),
             )
             self.add_prefixed_command(cmd)
             return cmd
