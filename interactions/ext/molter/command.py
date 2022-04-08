@@ -1,4 +1,5 @@
 import collections
+import contextlib
 import functools
 import inspect
 import typing
@@ -19,6 +20,7 @@ __all__ = (
     "prefixed_command",
     "prefix_command",
     "text_based_command",
+    "register_converter",
 )
 
 # 3.8+ compatibility
@@ -108,6 +110,14 @@ def _convert_to_bool(argument: str) -> bool:
         raise errors.BadArgument(f"{argument} is not a recognised boolean option.")
 
 
+def _merge_converters(
+    converter_dict: typing.Dict[type, typing.Type[converters.Converter]]
+) -> typing.Dict[type, typing.Type[converters.Converter]]:
+    combined = dict(converters.INTER_OBJECT_TO_CONVERTER)
+    combined.update(converter_dict)
+    return combined
+
+
 def _get_from_anno_type(anno: typing_extensions.Annotated, name):
     """
     Handles dealing with Annotated annotations, getting their
@@ -133,20 +143,42 @@ def _get_from_anno_type(anno: typing_extensions.Annotated, name):
     return args[0]
 
 
+def _get_converter_function(
+    anno: typing.Union[typing.Type[converters.Converter], converters.Converter],
+    name: str,
+) -> typing.Callable[[context.MolterContext, str], typing.Any]:
+    num_params = len(inspect.signature(anno.convert).parameters.values())
+
+    # if we have three parameters for the function, it's likely it has a self parameter
+    # so we need to get rid of it by initing - typehinting hates this, btw!
+    # the below line will error out if we aren't supposed to init it, so that works out
+    actual_anno: converters.Converter = anno() if num_params == 3 else anno  # type: ignore
+    # we can only get to this point while having three params if we successfully inited
+    if num_params == 3:
+        num_params -= 1
+
+    if num_params != 2:
+        ValueError(
+            f"{_get_name(anno)} for {name} is invalid: converters must have exactly 2"
+            " arguments."
+        )
+
+    return actual_anno.convert
+
+
 def _get_converter(
-    anno: type, name: str
+    anno: type,
+    name: str,
+    type_to_converter: typing.Dict[type, typing.Type[converters.Converter]],
 ) -> typing.Callable[[context.MolterContext, str], typing.Any]:  # type: ignore
     if typing_extensions.get_origin(anno) == typing_extensions.Annotated:
         anno = _get_from_anno_type(anno, name)
 
-    if converter := converters.INTER_OBJECT_TO_CONVERTER.get(anno, None):
-        return converter().convert
+    if isinstance(anno, converters.Converter):
+        return _get_converter_function(anno, name)
 
-    elif inspect.isclass(anno) and issubclass(anno, converters.Converter):
-        return anno().convert  # type: ignore
-
-    elif hasattr(anno, "convert") and inspect.isfunction(anno.convert):  # type: ignore
-        return anno.convert  # type: ignore
+    elif converter := type_to_converter.get(anno, None):
+        return _get_converter_function(converter, name)
 
     elif typing_extensions.get_origin(anno) is typing.Literal:
         literals = typing_extensions.get_args(anno)
@@ -196,7 +228,10 @@ def _greedy_parse(greedy: converters.Greedy, param: inspect.Parameter):
     return arg
 
 
-def _get_params(func: typing.Callable):
+def _get_params(
+    func: typing.Callable,
+    type_to_converter: typing.Dict[type, typing.Type[converters.Converter]],
+):
     cmd_params: list[CommandParameter] = []
 
     # we need to ignore parameters like self and ctx, so this is the easiest way
@@ -224,12 +259,12 @@ def _get_params(func: typing.Callable):
             cmd_param.union = True
             for arg in typing_extensions.get_args(anno):
                 if arg != NoneType:
-                    converter = _get_converter(arg, name)
+                    converter = _get_converter(arg, name, type_to_converter)
                     cmd_param.converters.append(converter)
                 elif not cmd_param.optional:  # d.py-like behavior
                     cmd_param.default = None
         else:
-            converter = _get_converter(anno, name)
+            converter = _get_converter(anno, name, type_to_converter)
             cmd_param.converters.append(converter)
 
         if param.kind == param.KEYWORD_ONLY:
@@ -327,7 +362,7 @@ class MolterCommand:
     name: str = attrs.field()
     "The name of the command."
 
-    parameters: typing.List[CommandParameter] = attrs.field()
+    parameters: typing.List[CommandParameter] = attrs.field(factory=list)
     "The paramters of the command."
     aliases: typing.List[str] = attrs.field(
         factory=list,
@@ -357,13 +392,19 @@ class MolterCommand:
         factory=dict,
     )
     "A dict of a subcommand's name and the subcommand for this command."
-    _usage: typing.Optional[str] = attrs.field(default=None)
 
-    @params.default  # type: ignore
-    def _fill_params(self):
-        return _get_params(self.callback)
+    _usage: typing.Optional[str] = attrs.field(default=None)
+    _type_to_converter: typing.Dict[
+        type, typing.Type[converters.Converter]
+    ] = attrs.field(
+        default=converters.INTER_OBJECT_TO_CONVERTER, converter=_merge_converters
+    )
 
     def __attrs_post_init__(self) -> None:
+        # doing this here just so we don't run into any issues here with a value
+        # not being there yet or something if we used defaults, idk
+        self.parameters = _get_params(self.callback, self._type_to_converter)
+
         # we have to do this afterwards as these rely on the callback
         # and its own value, which is impossible to get with attrs
         # methods, i think
@@ -542,6 +583,9 @@ class MolterCommand:
         enabled: bool = True,
         hidden: bool = False,
         ignore_extra: bool = True,
+        type_to_converter: typing.Optional[
+            typing.Dict[type, typing.Type[converters.Converter]]
+        ] = None,
     ):
         """
         A decorator to declare a subcommand for a molter prefixed command.
@@ -575,6 +619,12 @@ class MolterCommand:
             (e.g. ?foo a b c when only expecting a and b).
             Otherwise, an error is raised. Defaults to True.
 
+            type_to_converter (`dict[type, type[Converter]]`, optional): A dict
+            that associates converters for types. This allows you to use
+            native type annotations without needing to use `typing.Annotated`.
+            If this is not set, only dis-snek classes will be converted using
+            built-in converters.
+
         Returns:
             `molter.MolterCommand`: The command object.
         """
@@ -590,6 +640,8 @@ class MolterCommand:
                 enabled=enabled,
                 hidden=hidden,
                 ignore_extra=ignore_extra,
+                type_to_converter=type_to_converter  # type: ignore
+                or getattr(func, "_type_to_converter", {}),
             )
             self.add_command(cmd)
             return cmd
@@ -689,6 +741,9 @@ def prefixed_command(
     enabled: bool = True,
     hidden: bool = False,
     ignore_extra: bool = True,
+    type_to_converter: typing.Optional[
+        typing.Dict[type, typing.Type[converters.Converter]]
+    ] = None,
 ):
     """
     A decorator to declare a coroutine as a molter prefixed command.
@@ -722,6 +777,12 @@ def prefixed_command(
         (e.g. ?foo a b c when only expecting a and b).
         Otherwise, an error is raised. Defaults to True.
 
+        type_to_converter (`dict[type, type[Converter]]`, optional): A dict
+        that associates converters for types. This allows you to use
+        native type annotations without needing to use `typing.Annotated`.
+        If this is not set, only dis-snek classes will be converted using
+        built-in converters.
+
     Returns:
         `molter.MolterCommand`: The command object.
     """
@@ -737,6 +798,8 @@ def prefixed_command(
             enabled=enabled,
             hidden=hidden,
             ignore_extra=ignore_extra,
+            type_to_converter=type_to_converter  # type: ignore
+            or getattr(func, "_type_to_converter", {}),
         )
 
     return wrapper
@@ -744,3 +807,53 @@ def prefixed_command(
 
 prefix_command = prefixed_command
 text_based_command = prefixed_command
+
+
+# molter command typevar - can be the function or the command
+MCT = typing.TypeVar("MCT", typing.Callable, MolterCommand)
+
+
+def register_converter(
+    type_: type, converter: typing.Type[converters.Converter]
+) -> typing.Callable[..., MCT]:
+    """
+    A decorator that allows you to register converters for a type for a specific command.
+    This allows for native type annotations without needing to use `typing(_extensions).Annotated`.
+    Args:
+        type_ (`type`): The type to register for.
+        converter (`type[Converter]`): The converter to use for the type.
+    Returns:
+        `Callable | MolterCommand`: Either the callback or the command.
+        If this is used after using the `molter.prefixed_command` decorator, it will be a command.
+        Otherwise, it will be a callback.
+    """
+
+    def wrapper(command: MCT) -> MCT:
+        if hasattr(command, "_type_to_converter"):
+            command._type_to_converter[type_] = converter
+        else:
+            command._type_to_converter = {type_: converter}
+
+        if isinstance(command, MolterCommand):
+            # we want to update any instance where the anno_type was used
+            # to use the provided converter without re-analyzing every param
+            for param in command.parameters:
+                param_type = param.type
+                if type_ == param_type:
+                    param.converters = [converter]
+                else:
+                    if (
+                        typing_extensions.get_origin(param_type)
+                        == typing_extensions.Annotated
+                    ):
+                        param_type = _get_from_anno_type(param_type, param.name)
+
+                    with contextlib.suppress(ValueError):
+                        # if you have multiple of the same anno/type here, i don't know
+                        # what to tell you other than why
+                        index = typing_extensions.get_args(param.type).index(type_)
+                        param.converters[index] = converter
+
+        return command
+
+    return wrapper
