@@ -32,7 +32,7 @@ version = ext.Version(
 base = ext.Base(
     name="interactions-molter",
     version=version,
-    link="https://github.com/interactions-py/molter/tree/main/examples",
+    link="https://github.com/interactions-py/molter/",
     description=(
         "An extension library for interactions.py to add text-based commands. Ported"
         " from dis-snek."
