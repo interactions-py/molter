@@ -123,16 +123,18 @@ class Molter:
     def __init__(
         self,
         client: interactions.Client,
-        default_prefix: typing.Union[str, typing.Iterable[str]] = None,
-        generate_prefixes: typing.Callable[
-            [interactions.Client, interactions.Message],
-            typing.Coroutine[
-                typing.Any, typing.Any, typing.Union[str, typing.Iterable[str]]
-            ],
+        default_prefix: typing.Optional[typing.Union[str, typing.Iterable[str]]] = None,
+        generate_prefixes: typing.Optional[
+            typing.Callable[
+                [interactions.Client, interactions.Message],
+                typing.Coroutine[
+                    typing.Any, typing.Any, typing.Union[str, typing.Iterable[str]]
+                ],
+            ]
         ] = None,
         fetch_data_for_context: bool = False,
-        on_molter_command_error: typing.Callable[
-            [MolterContext, Exception], typing.Coroutine
+        on_molter_command_error: typing.Optional[
+            typing.Callable[[MolterContext, Exception], typing.Coroutine]
         ] = None,
     ) -> None:
 
@@ -191,12 +193,12 @@ class Molter:
 
     def prefixed_command(
         self,
-        name: str = None,
+        name: typing.Optional[str] = None,
         *,
-        aliases: typing.List[str] = None,
-        help: str = None,
-        brief: str = None,
-        usage: str = None,
+        aliases: typing.Optional[typing.List[str]] = None,
+        help: typing.Optional[str] = None,
+        brief: typing.Optional[str] = None,
+        usage: typing.Optional[str] = None,
         enabled: bool = True,
         hidden: bool = False,
         ignore_extra: bool = True,
@@ -398,16 +400,18 @@ class Molter:
 
 def setup(
     client: interactions.Client,
-    default_prefix: typing.Union[str, typing.Iterable[str]] = None,
-    generate_prefixes: typing.Callable[
-        [interactions.Client, interactions.Message],
-        typing.Coroutine[
-            typing.Any, typing.Any, typing.Union[str, typing.Iterable[str]]
-        ],
+    default_prefix: typing.Optional[typing.Union[str, typing.Iterable[str]]] = None,
+    generate_prefixes: typing.Optional[
+        typing.Callable[
+            [interactions.Client, interactions.Message],
+            typing.Coroutine[
+                typing.Any, typing.Any, typing.Union[str, typing.Iterable[str]]
+            ],
+        ]
     ] = None,
     fetch_data_for_context: bool = False,
-    on_molter_command_error: typing.Callable[
-        [MolterContext, Exception], typing.Coroutine
+    on_molter_command_error: typing.Optional[
+        typing.Callable[[MolterContext, Exception], typing.Coroutine]
     ] = None,
     *args,
     **kwargs,

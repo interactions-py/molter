@@ -574,12 +574,12 @@ class MolterCommand:
 
     def subcommand(
         self,
-        name: str = None,
+        name: typing.Optional[str] = None,
         *,
-        aliases: typing.List[str] = None,
-        help: str = None,
-        brief: str = None,
-        usage: str = None,
+        aliases: typing.Optional[typing.List[str]] = None,
+        help: typing.Optional[str] = None,
+        brief: typing.Optional[str] = None,
+        usage: typing.Optional[str] = None,
         enabled: bool = True,
         hidden: bool = False,
         ignore_extra: bool = True,
@@ -732,12 +732,12 @@ class MolterCommand:
 
 
 def prefixed_command(
-    name: str = None,
+    name: typing.Optional[str] = None,
     *,
-    aliases: typing.List[str] = None,
-    help: str = None,
-    brief: str = None,
-    usage: str = None,
+    aliases: typing.Optional[typing.List[str]] = None,
+    help: typing.Optional[str] = None,
+    brief: typing.Optional[str] = None,
+    usage: typing.Optional[str] = None,
     enabled: bool = True,
     hidden: bool = False,
     ignore_extra: bool = True,
