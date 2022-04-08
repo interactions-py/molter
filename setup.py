@@ -9,8 +9,8 @@ with open("requirements.txt") as f:
 setup(
     name="interactions-molter",
     description=(
-        "An extension library for interactions.py to add text-based commands! Ported"
-        " from dis-snek."
+        "An extension library for interactions.py to add prefixed commands. Ported from"
+        " dis-snek."
     ),
     long_description=(Path(__file__).parent / "README.md").read_text(),
     long_description_content_type="text/markdown",

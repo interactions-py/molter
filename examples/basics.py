@@ -5,7 +5,7 @@ from interactions.ext import molter
 # This first part should look rather normal.
 # It's initializing the Client, providing our token and all.
 # Enabling the guild message intent is highly recommended, as otherwise you will
-# be limited to messages that ping the bot for message/prefix/molter commands.
+# be limited to messages that ping the bot for prefix commands.
 client = interactions.Client(
     token="YOUR TOKEN HERE",
     intents=interactions.Intents.DEFAULT | interactions.Intents.GUILD_MESSAGE_CONTENT,
@@ -31,15 +31,15 @@ client = interactions.Client(
 molt = molter.setup(client)
 
 
-# And this is how we declare message commands in our runner file.
-# You can use a variety of aliases for message_command, including msg_command
-# and prefix_command - they all do the same thing.
+# And this is how we declare prefixed commands in our runner file.
+# You can use a variety of aliases for prefixed_command, including prefix_command
+# and text_based_command - they all do the same thing.
 # The decorator has a variety of options that you can use, but for this example,
 # we're only using aliases - a way of allowing a command to be run under different
 # commands.
 
 # MolterContext is fundamentally different from interactions.py's Context,
-# and the two are not compatible. Its purpose are to make using message commands
+# and the two are not compatible. Its purpose are to make using prefixed commands
 # easier.
 
 # By default, commands are named after what their function's name is.
@@ -48,7 +48,7 @@ molt = molter.setup(client)
 # molter will automatically handle simple typehints like these, require the user
 # to provide a number, and convert the input to an integer if it is.
 # molter also handles some interactions.py classes, like User and Message.
-@molt.message_command(aliases=["test2"])
+@molt.prefixed_command(aliases=["test2"])
 async def test(ctx: molter.MolterContext, a_number: int):
     # MolterContext has a couple of QoL features, one being replying being as
     # simple as the below. ctx.message.reply does the same thing, if you wish.

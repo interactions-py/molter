@@ -72,7 +72,7 @@ molt = molter.setup(
 # Unlike discord.py or dis-snek though, some objects can only take IDs due to technical
 # reasons.
 # Converters will be talked more in-depth in the extension.
-@molt.message_command(name="test", ignore_extra=False)
+@molt.prefixed_command(name="test", ignore_extra=False)
 async def a_name(
     ctx: molter.MolterContext,
     member_or_user: Union[interactions.Member, interactions.User],
