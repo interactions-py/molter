@@ -31,7 +31,7 @@ class Extension(molter.MolterExtension):
     def __init__(self, client: interactions.Client):
         self.client = client
 
-    # First off - you'll notice how the way to declare a molter/message command
+    # First off - you'll notice how the way to declare a prefixed command
     # is different in extensions - this is just due to how extensions (and any similar
     # system) are. Just use this method in extensions and the other method in the main
     # file and you'll be good.
@@ -49,7 +49,7 @@ class Extension(molter.MolterExtension):
     # with two arguments in them - it will error out if more are provided.
     # You may also use other ways of making your type checker happy rather than just
     # use Annotated, if you desire.
-    @molter.msg_command()
+    @molter.prefixed_command()
     async def random_role(
         self, ctx: molter.MolterContext, judgment: Annotated[str, JudgementConverter]
     ):
@@ -60,7 +60,7 @@ class Extension(molter.MolterExtension):
     # if it can't convert whatever argument it sees (or if there's no argument at all).
     # Otherwise, if an argument has a default value, regardless of it its marked or not,
     # it'll return the default value if it can't convert.
-    @molter.msg_command()
+    @molter.prefixed_command()
     async def optional_example(
         self, ctx: molter.MolterContext, maybe_int: Optional[int]
     ):
@@ -73,7 +73,7 @@ class Extension(molter.MolterExtension):
     # To put it simply, Greedy will convert every new argument passed to it until it can't
     # anymore - for example, "!greedy_example 1124 124 23 e" would convert until the "e",
     # stop, and return a list of [1124, 124, 23].
-    @molter.msg_command()
+    @molter.prefixed_command()
     async def greedy_example(
         self, ctx: molter.MolterContext, greedy_ints: molter.Greedy[int]
     ):
