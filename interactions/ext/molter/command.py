@@ -21,6 +21,7 @@ __all__ = (
     "prefix_command",
     "text_based_command",
     "register_converter",
+    "globally_register_converter",
 )
 
 # 3.8+ compatibility
@@ -32,6 +33,10 @@ try:
     UNION_TYPES = {typing.Union, UnionType}
 except ImportError:  # 3.8-3.9
     UNION_TYPES = {typing.Union}
+
+
+# thankfully, modules are singletons
+_global_type_to_converter = dict(converters.INTER_OBJECT_TO_CONVERTER)
 
 
 @attrs.define(slots=True)
@@ -113,7 +118,8 @@ def _convert_to_bool(argument: str) -> bool:
 def _merge_converters(
     converter_dict: typing.Dict[type, typing.Type[converters.Converter]]
 ) -> typing.Dict[type, typing.Type[converters.Converter]]:
-    combined = dict(converters.INTER_OBJECT_TO_CONVERTER)
+    global _global_type_to_converter
+    combined = dict(_global_type_to_converter)
     combined.update(converter_dict)
     return combined
 
@@ -396,9 +402,7 @@ class MolterCommand:
     _usage: typing.Optional[str] = attrs.field(default=None)
     _type_to_converter: typing.Dict[
         type, typing.Type[converters.Converter]
-    ] = attrs.field(
-        default=converters.INTER_OBJECT_TO_CONVERTER, converter=_merge_converters
-    )
+    ] = attrs.field(factory=dict, converter=_merge_converters)
 
     def __attrs_post_init__(self) -> None:
         # doing this here just so we don't run into any issues here with a value
@@ -857,3 +861,19 @@ def register_converter(
         return command
 
     return wrapper
+
+
+def globally_register_converter(
+    anno_type: type, converter: typing.Type[converters.Converter]
+) -> None:
+    """
+    A decorator that allows you to register converters for commands decorated/made after this is run.
+    This allows for native type annotations without needing to use `typing.Annotated`.
+    Note that this does not retroactively register converters for commands already made.
+    Args:
+        anno_type (`type`): The type to register for.
+        converter (`type[Converter]`): The converter to use for the type.
+    """
+    # hate me, but i think it makes sense here
+    global _global_type_to_converter
+    _global_type_to_converter.update({anno_type: converter})
