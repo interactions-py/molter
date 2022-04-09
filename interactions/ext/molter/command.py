@@ -831,6 +831,8 @@ def register_converter(
         If this is used after using the `molter.prefixed_command` decorator, it will be a command.
         Otherwise, it will be a callback.
     """
+    if not isinstance(converter, converters.Converter):
+        raise ValueError('Converter provided did not have a "convert" method.')
 
     def wrapper(command: MCT) -> MCT:
         if hasattr(command, "_type_to_converter"):
@@ -874,6 +876,9 @@ def globally_register_converter(
         anno_type (`type`): The type to register for.
         converter (`type[Converter]`): The converter to use for the type.
     """
+    if not isinstance(converter, converters.Converter):
+        raise ValueError('Converter provided did not have a "convert" method.')
+
     # hate me, but i think it makes sense here
     global _global_type_to_converter
     _global_type_to_converter.update({anno_type: converter})
