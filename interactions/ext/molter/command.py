@@ -14,8 +14,6 @@ from . import errors
 from .utils import maybe_coroutine
 
 __all__ = (
-    "CommandParameter",
-    "ArgsIterator",
     "MolterCommand",
     "prefixed_command",
     "prefix_command",
