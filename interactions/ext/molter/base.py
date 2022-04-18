@@ -367,7 +367,7 @@ class Molter:
             while True:
                 first_word: str = utils.get_first_word(context.content_parameters)  # type: ignore
                 if isinstance(command, MolterCommand):
-                    new_command = command.command_dict.get(first_word)
+                    new_command = command.subcommands.get(first_word)
                 else:
                     new_command = command.prefixed_commands.get(first_word)
                 if not new_command or not new_command.enabled:
