@@ -394,7 +394,7 @@ class MolterCommand:
         default=None,
     )
     "The parent command, if applicable."
-    command_dict: typing.Dict[str, "MolterCommand"] = attrs.field(
+    subcommands: typing.Dict[str, "MolterCommand"] = attrs.field(
         factory=dict,
     )
     "A dict of a subcommand's name and the subcommand for this command."
@@ -455,7 +455,7 @@ class MolterCommand:
     @property
     def all_commands(self):
         """Returns all unique subcommands underneath this command."""
-        return frozenset(self.command_dict.values())
+        return frozenset(self.subcommands.values())
 
     @property
     def signature(self) -> str:
@@ -520,13 +520,13 @@ class MolterCommand:
         """Adds a command as a subcommand to this command."""
         cmd.parent = self  # just so we know this is a subcommand
 
-        cmd_names = frozenset(self.command_dict)
+        cmd_names = frozenset(self.subcommands)
         if cmd.name in cmd_names:
             raise ValueError(
                 "Duplicate Command! Multiple commands share the name/alias"
                 f" `{self.qualified_name} {cmd.name}`"
             )
-        self.command_dict[cmd.name] = cmd
+        self.subcommands[cmd.name] = cmd
 
         for alias in cmd.aliases:
             if alias in cmd_names:
@@ -534,20 +534,20 @@ class MolterCommand:
                     "Duplicate Command! Multiple commands share the name/alias"
                     f" `{self.qualified_name} {cmd.name}`"
                 )
-            self.command_dict[alias] = cmd
+            self.subcommands[alias] = cmd
 
     def remove_command(self, name: str):
         """
         Removes a command as a subcommand from this command.
         If an alias is specified, only the alias will be removed.
         """
-        command = self.command_dict.pop(name, None)
+        command = self.subcommands.pop(name, None)
 
         if command is None or name in command.aliases:
             return
 
         for alias in command.aliases:
-            self.command_dict.pop(alias, None)
+            self.subcommands.pop(alias, None)
 
     def get_command(self, name: str):
         """
@@ -558,19 +558,19 @@ class MolterCommand:
             `MolterCommand`: The command object, if found.
         """
         if " " not in name:
-            return self.command_dict.get(name)
+            return self.subcommands.get(name)
 
         names = name.split()
         if not names:
             return None
 
-        cmd = self.command_dict.get(names[0])
-        if not cmd or not cmd.command_dict:
+        cmd = self.subcommands.get(names[0])
+        if not cmd or not cmd.subcommands:
             return cmd
 
         for name in names[1:]:
             try:
-                cmd = cmd.command_dict[name]
+                cmd = cmd.subcommands[name]
             except (AttributeError, KeyError):
                 return None
 
