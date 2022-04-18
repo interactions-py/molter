@@ -395,7 +395,7 @@ class MolterCommand:
     subcommands: typing.Dict[str, "MolterCommand"] = attrs.field(
         factory=dict,
     )
-    "A dict of a subcommand's name and the subcommand for this command."
+    "A dict of all subcommands for the command."
 
     _usage: typing.Optional[str] = attrs.field(default=None)
     _type_to_converter: typing.Dict[
