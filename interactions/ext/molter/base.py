@@ -163,9 +163,9 @@ class Molter:
 
         # this allows us to use a (hopefully) non-conflicting namespace
         self.client.molter = self
-
-        self.client.event(self._handle_prefixed_commands, "on_message_create")  # type: ignore
-        self.client.event(self.on_molter_command_error, "on_molter_command_error")  # type: ignore
+ 
+        self.client.event(self._handle_prefixed_commands, name="on_message_create")  # type: ignore
+        self.client.event(self.on_molter_command_error, name="on_molter_command_error")  # type: ignore
 
     def add_prefixed_command(self, command: MolterCommand):
         """Add a prefixed command to the client.
