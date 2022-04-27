@@ -145,28 +145,15 @@ def _merge_converters(
     return combined
 
 
-def _get_from_anno_type(anno: typing_extensions.Annotated, name):
+def _get_from_anno_type(anno: typing_extensions.Annotated):
     """
-    Handles dealing with Annotated annotations, getting their
-    (first and what should be only) type annotation.
+    Handles dealing with Annotated annotations, getting their (first) type annotation.
     This allows correct type hinting with, say, Converters,
     for example.
     """
     # this is treated how it usually is during runtime
     # the first argument is ignored and the rest is treated as is
-
     args = typing_extensions.get_args(anno)[1:]
-    if len(args) > 1:
-        # we could treat this as a union, but id rather have a user
-        # use an actual union type here
-        # from what ive seen, multiple arguments for Annotated are
-        # meant to be used to narrow down a type rather than
-        # be used as a union anyways
-        raise ValueError(
-            f"{_get_name(anno)} for {name} has more than 2 arguments, which is"
-            " unsupported."
-        )
-
     return args[0]
 
 
@@ -199,7 +186,7 @@ def _get_converter(
     type_to_converter: typing.Dict[type, typing.Type[converters.Converter]],
 ) -> typing.Callable[[context.MolterContext, str], typing.Any]:  # type: ignore
     if typing_extensions.get_origin(anno) == typing_extensions.Annotated:
-        anno = _get_from_anno_type(anno, name)
+        anno = _get_from_anno_type(anno)
 
     if isinstance(anno, converters.Converter):
         return _get_converter_function(anno, name)
@@ -242,7 +229,7 @@ def _greedy_parse(greedy: converters.Greedy, param: inspect.Parameter):
     arg = typing_extensions.get_args(greedy)[0]
 
     if typing_extensions.get_origin(arg) == typing_extensions.Annotated:
-        arg = _get_from_anno_type(arg, param.name)
+        arg = _get_from_anno_type(arg)
 
     if arg in {NoneType, str}:
         raise ValueError(f"Greedy[{_get_name(arg)}] is invalid.")
@@ -501,7 +488,7 @@ class MolterCommand:
 
             if typing_extensions.get_origin(anno) == typing_extensions.Annotated:
                 # prefixed commands can only have two arguments in an annotation anyways
-                anno = typing_extensions.get_args(anno)[1]
+                anno = _get_from_anno_type(anno)
 
             if not param.greedy and param.union:
                 union_args = typing_extensions.get_args(anno)
@@ -894,7 +881,7 @@ def register_converter(
                         typing_extensions.get_origin(param_type)
                         == typing_extensions.Annotated
                     ):
-                        param_type = _get_from_anno_type(param_type, param.name)
+                        param_type = _get_from_anno_type(param_type)
 
                     with contextlib.suppress(ValueError):
                         # if you have multiple of the same anno/type here, i don't know
