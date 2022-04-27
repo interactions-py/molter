@@ -58,7 +58,7 @@ class CommandParameter:
 
 
 @attrs.define(slots=True)
-class ArgsIterator:
+class _PrefixedArgsIterator:
     """
     An iterator over the arguments of a command.
     Has functions to control the iteration.
@@ -320,7 +320,7 @@ async def _convert(param: CommandParameter, ctx: context.MolterContext, arg: str
 
 
 async def _greedy_convert(
-    param: CommandParameter, ctx: context.MolterContext, args: ArgsIterator
+    param: CommandParameter, ctx: context.MolterContext, args: _PrefixedArgsIterator
 ):
     args.back()
     broke_off = False
@@ -672,7 +672,7 @@ class MolterCommand:
         else:
             new_args: list[typing.Any] = []
             kwargs: dict[str, typing.Any] = {}
-            args = ArgsIterator(tuple(ctx.args))
+            args = _PrefixedArgsIterator(tuple(ctx.args))
             param_index = 0
 
             for arg in args:
