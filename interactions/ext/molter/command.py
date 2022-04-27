@@ -268,8 +268,15 @@ def _get_params(
     else:
         callback = functools.partial(func, None)
 
+    # this is used by keyword-only and variable args to make sure there isn't more than one of either
+    # mind you, we also don't want one keyword-only and one variable arg either
+    finished_params = False
     params = inspect.signature(callback).parameters
+
     for name, param in params.items():
+        if finished_params:
+            raise ValueError("Cannot have multiple keyword-only or variable arguments.")
+
         cmd_param = PrefixedCommandParameter()
         cmd_param.name = name
         cmd_param.default = (
@@ -296,8 +303,7 @@ def _get_params(
 
         if param.kind == param.KEYWORD_ONLY:
             cmd_param.consume_rest = True
-            cmd_params.append(cmd_param)
-            break
+            finished_params = True
         elif param.kind == param.VAR_POSITIONAL:
             if cmd_param.optional:
                 # there's a lot of parser ambiguities here, so i'd rather not
@@ -306,8 +312,7 @@ def _get_params(
                 )
 
             cmd_param.variable = True
-            cmd_params.append(cmd_param)
-            break
+            finished_params = True
 
         cmd_params.append(cmd_param)
 
