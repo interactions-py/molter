@@ -39,21 +39,33 @@ _global_type_to_converter = dict(converters.INTER_OBJECT_TO_CONVERTER)
 
 @attrs.define(slots=True)
 class PrefixedCommandParameter:
-    """An object representing parameters in a command."""
+    """
+    An object representing parameters in a prefixed command.
+    This class should not be instantiated directly.
+    """
 
     name: str = attrs.field(default=None)
+    "The name of the parameter."
     default: typing.Optional[typing.Any] = attrs.field(default=None)
+    "The default value of the parameter."
     type: type = attrs.field(default=None)
+    "The type of the parameter."
     converters: typing.List[
         typing.Callable[[context.MolterContext, str], typing.Any]
     ] = attrs.field(factory=list)
+    "A list of the converter functions for the parameter that convert to its type."
     greedy: bool = attrs.field(default=False)
+    "Is the parameter greedy?"
     union: bool = attrs.field(default=False)
+    "Is the parameter a union?"
     variable: bool = attrs.field(default=False)
+    "Was the parameter marked as a variable argument?"
     consume_rest: bool = attrs.field(default=False)
+    "Was the parameter marked to consume the rest of the input?"
 
     @property
     def optional(self) -> bool:
+        """Is this parameter optional?"""
         return self.default != interactions.MISSING
 
 
