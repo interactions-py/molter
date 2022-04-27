@@ -198,7 +198,7 @@ def _get_converter(
 
     elif typing_extensions.get_origin(anno) is typing.Literal:
         literals = typing_extensions.get_args(anno)
-        return converters.LiteralConverter(literals).convert
+        return converters._LiteralConverter(literals).convert
 
     elif inspect.isfunction(anno):
         num_params = len(inspect.signature(anno).parameters.values())

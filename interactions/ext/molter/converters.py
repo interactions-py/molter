@@ -9,7 +9,6 @@ from .context import MolterContext
 
 __all__ = (
     "Converter",
-    "LiteralConverter",
     "IDConverter",
     "SnowflakeConverter",
     "MemberConverter",
@@ -42,7 +41,7 @@ class Converter(typing.Protocol[T_co]):
         raise NotImplementedError("Derived classes need to implement this.")
 
 
-class LiteralConverter(Converter):
+class _LiteralConverter(Converter):
     values: typing.Dict
 
     def __init__(self, args: typing.Any):
