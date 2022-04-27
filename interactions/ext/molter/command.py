@@ -222,7 +222,12 @@ def _get_converter(
         return lambda ctx, arg: anno(arg)
 
 
+_INVALID_GREEDY_TYPES = {NoneType, str, converters.Greedy}.union(UNION_TYPES)
+
+
 def _greedy_parse(greedy: converters.Greedy, param: inspect.Parameter):
+    default = param.default
+
     if param.kind in {param.KEYWORD_ONLY, param.VAR_POSITIONAL}:
         raise ValueError("Greedy[...] cannot be a variable or keyword-only argument.")
 
@@ -231,15 +236,19 @@ def _greedy_parse(greedy: converters.Greedy, param: inspect.Parameter):
     if typing_extensions.get_origin(arg) == typing_extensions.Annotated:
         arg = _get_from_anno_type(arg)
 
-    if arg in {NoneType, str}:
+    if typing.get_origin(arg) in UNION_TYPES:
+        args = typing.get_args(arg)
+
+        if len(args) > 2 or NoneType not in args:
+            raise ValueError(f"Greedy[{repr(arg)}] is invalid.")
+
+        arg = args[0]
+        default = None
+
+    if arg in _INVALID_GREEDY_TYPES:
         raise ValueError(f"Greedy[{_get_name(arg)}] is invalid.")
 
-    if typing_extensions.get_origin(
-        arg
-    ) in UNION_TYPES and NoneType in typing_extensions.get_args(arg):
-        raise ValueError(f"Greedy[{repr(arg)}] is invalid.")
-
-    return arg
+    return arg, default
 
 
 def _get_params(
@@ -273,8 +282,10 @@ def _get_params(
         cmd_param.type = anno = param.annotation
 
         if typing_extensions.get_origin(anno) == converters.Greedy:
-            anno = _greedy_parse(anno, param)
-            cmd_param.greedy = True
+            anno, default = _greedy_parse(anno, param)
+
+            if default is not param.empty:
+                cmd_param.default = default
 
         if typing_extensions.get_origin(anno) in UNION_TYPES:
             cmd_param.union = True
