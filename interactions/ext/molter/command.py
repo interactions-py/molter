@@ -541,6 +541,10 @@ class MolterCommand:
 
         return " ".join(results)
 
+    def is_subcommand(self):
+        """Returns if this command is a subcommand or not."""
+        return bool(self.parent)
+
     def add_command(self, cmd: "MolterCommand"):
         """
         Adds a command as a subcommand to this command.
