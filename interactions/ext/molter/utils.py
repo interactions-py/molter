@@ -132,8 +132,7 @@ def get_args_from_str(input: str) -> list:
     Returns:
         A list of arguments.
     """
-    args = ARG_PARSE_REGEX.findall(input)
-    return [(arg[1:-1] if arg[0] in _start_quotes else arg) for arg in args]
+    return ARG_PARSE_REGEX.findall(input)
 
 
 def get_first_word(text: str) -> typing.Optional[str]:
