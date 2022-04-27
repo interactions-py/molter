@@ -515,7 +515,12 @@ class MolterCommand:
         return " ".join(results)
 
     def add_command(self, cmd: "MolterCommand"):
-        """Adds a command as a subcommand to this command."""
+        """
+        Adds a command as a subcommand to this command.
+
+        Args:
+            cmd (`MolterCommand`): The command to add
+        """
         cmd.parent = self  # just so we know this is a subcommand
 
         cmd_names = frozenset(self.subcommands)
@@ -538,6 +543,9 @@ class MolterCommand:
         """
         Removes a command as a subcommand from this command.
         If an alias is specified, only the alias will be removed.
+
+        Args:
+            name (`str`): The command to remove.
         """
         command = self.subcommands.pop(name, None)
 
