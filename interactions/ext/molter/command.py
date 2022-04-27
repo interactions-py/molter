@@ -11,6 +11,7 @@ import interactions
 from . import context
 from . import converters
 from . import errors
+from .utils import _start_quotes
 from .utils import maybe_coroutine
 
 __all__ = (
@@ -72,39 +73,49 @@ class PrefixedCommandParameter:
 @attrs.define(slots=True)
 class _PrefixedArgsIterator:
     """
-    An iterator over the arguments of a command.
+    An iterator over the arguments of a prefixed command.
     Has functions to control the iteration.
     """
 
-    args: typing.Sequence[str] = attrs.field(converter=tuple)
+    args: tuple[str] = attrs.field()
     index: int = attrs.field(init=False, default=0)
     length: int = attrs.field(init=False, default=0)
 
-    def __iter__(self):
+    def __iter__(self) -> "_PrefixedArgsIterator":
         self.length = len(self.args)
         return self
 
-    def __next__(self):
+    def __next__(self) -> str:
         if self.index >= self.length:
             raise StopIteration
 
         result = self.args[self.index]
         self.index += 1
-        return result
+        return self._remove_quotes(result)
 
-    def consume_rest(self):
+    def _remove_quotes(self, arg: str) -> str:
+        # this removes quotes from the arguments themselves
+        return arg[1:-1] if arg[0] in _start_quotes else arg
+
+    def _finish_args(self) -> tuple[str]:
         result = self.args[self.index - 1 :]
         self.index = self.length
         return result
 
-    def back(self, count: int = 1):
+    def get_rest_of_args(self) -> tuple[str]:
+        return tuple(self._remove_quotes(r) for r in self._finish_args())
+
+    def consume_rest(self) -> str:
+        return " ".join(self._finish_args())
+
+    def back(self, count: int = 1) -> None:
         self.index -= count
 
-    def reset(self):
+    def reset(self) -> None:
         self.index = 0
 
     @property
-    def finished(self):
+    def finished(self) -> bool:
         return self.index >= self.length
 
 
@@ -704,10 +715,10 @@ class MolterCommand:
                     param = self.parameters[param_index]
 
                     if param.consume_rest:
-                        arg = " ".join(args.consume_rest())
+                        arg = args.consume_rest()
 
                     if param.variable:
-                        args_to_convert = args.consume_rest()
+                        args_to_convert = args.get_rest_of_args()
                         new_arg = [
                             await _convert(param, ctx, arg) for arg in args_to_convert
                         ]
