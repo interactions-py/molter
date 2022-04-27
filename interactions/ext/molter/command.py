@@ -49,7 +49,7 @@ class PrefixedCommandParameter:
     "The name of the parameter."
     default: typing.Optional[typing.Any] = attrs.field(default=None)
     "The default value of the parameter."
-    type: type = attrs.field(default=None)
+    type: typing.Type = attrs.field(default=None)
     "The type of the parameter."
     converters: typing.List[
         typing.Callable[[context.MolterContext, str], typing.Any]
@@ -77,7 +77,7 @@ class _PrefixedArgsIterator:
     Has functions to control the iteration.
     """
 
-    args: tuple[str] = attrs.field()
+    args: typing.Tuple[str] = attrs.field()
     index: int = attrs.field(init=False, default=0)
     length: int = attrs.field(init=False, default=0)
 
