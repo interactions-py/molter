@@ -72,7 +72,7 @@ class MolterExtension(interactions.Extension):
         ):
             cmd: MolterCommand
 
-            if not cmd.parent:  # we don't want to add subcommands
+            if not cmd.is_subcommand():  # we don't want to add subcommands
                 cmd.extension = self
                 cmd.callback = functools.partial(cmd.callback, self)
                 self._molter_prefixed_commands.append(cmd)
