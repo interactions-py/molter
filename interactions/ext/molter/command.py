@@ -38,7 +38,7 @@ _global_type_to_converter = dict(converters.INTER_OBJECT_TO_CONVERTER)
 
 
 @attrs.define(slots=True)
-class CommandParameter:
+class PrefixedCommandParameter:
     """An object representing parameters in a command."""
 
     name: str = attrs.field(default=None)
@@ -236,7 +236,7 @@ def _get_params(
     func: typing.Callable,
     type_to_converter: typing.Dict[type, typing.Type[converters.Converter]],
 ):
-    cmd_params: list[CommandParameter] = []
+    cmd_params: list[PrefixedCommandParameter] = []
 
     # we need to ignore parameters like self and ctx, so this is the easiest way
     # forgive me, but this is the only reliable way i can find out if the function...
@@ -247,7 +247,7 @@ def _get_params(
 
     params = inspect.signature(callback).parameters
     for name, param in params.items():
-        cmd_param = CommandParameter()
+        cmd_param = PrefixedCommandParameter()
         cmd_param.name = name
         cmd_param.default = (
             param.default if param.default is not param.empty else interactions.MISSING
@@ -291,7 +291,9 @@ def _get_params(
     return cmd_params
 
 
-async def _convert(param: CommandParameter, ctx: context.MolterContext, arg: str):
+async def _convert(
+    param: PrefixedCommandParameter, ctx: context.MolterContext, arg: str
+):
     converted = interactions.MISSING
     for converter in param.converters:
         try:
@@ -320,7 +322,9 @@ async def _convert(param: CommandParameter, ctx: context.MolterContext, arg: str
 
 
 async def _greedy_convert(
-    param: CommandParameter, ctx: context.MolterContext, args: _PrefixedArgsIterator
+    param: PrefixedCommandParameter,
+    ctx: context.MolterContext,
+    args: _PrefixedArgsIterator,
 ):
     args.back()
     broke_off = False
@@ -366,7 +370,7 @@ class MolterCommand:
     name: str = attrs.field()
     "The name of the command."
 
-    parameters: typing.List[CommandParameter] = attrs.field(factory=list)
+    parameters: typing.List[PrefixedCommandParameter] = attrs.field(factory=list)
     "The paramters of the command."
     aliases: typing.List[str] = attrs.field(
         factory=list,
