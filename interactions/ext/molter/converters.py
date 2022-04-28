@@ -50,8 +50,8 @@ class _LiteralConverter(Converter):
     async def convert(self, ctx: MolterContext, argument: str):
         for arg, converter in self.values.items():
             try:
-                if arg == converter(argument):
-                    return argument
+                if (converted := converter(argument)) == arg:
+                    return converted
             except Exception:
                 continue
 
