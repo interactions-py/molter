@@ -300,6 +300,9 @@ def _get_params(
             cmd_param.converters.append(converter)
 
         if param.kind == param.KEYWORD_ONLY:
+            if cmd_param.greedy:
+                raise ValueError("Keyword-only arguments cannot be Greedy.")
+
             cmd_param.consume_rest = True
             finished_params = True
         elif param.kind == param.VAR_POSITIONAL:
@@ -308,6 +311,8 @@ def _get_params(
                 raise ValueError(
                     "Variable arguments cannot have default values or be Optional."
                 )
+            if cmd_param.greedy:
+                raise ValueError("Variable arguments cannot be Greedy.")
 
             cmd_param.variable = True
             finished_params = True
@@ -730,7 +735,7 @@ class MolterCommand:
                             await _convert(param, ctx, arg) for arg in args_to_convert
                         ]
                         new_arg = tuple(arg[0] for arg in new_arg)
-                        new_args.append(new_arg)
+                        new_args.extend(new_arg)
                         param_index += 1
                         break
 
