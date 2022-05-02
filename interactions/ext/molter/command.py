@@ -200,12 +200,14 @@ def _get_converter(
 
     elif inspect.isfunction(anno):
         num_params = len(inspect.signature(anno).parameters.values())
-        if num_params == 2:
-            return lambda ctx, arg: anno(ctx, arg)
+        if num_params == 0:
+            ValueError(
+                f"{_get_name(anno)} for {name} has 0 arguments, which is unsupported."
+            )
         elif num_params == 1:
             return lambda ctx, arg: anno(arg)
-        elif num_params == 0:
-            return lambda ctx, arg: anno()
+        elif num_params == 2:
+            return lambda ctx, arg: anno(ctx, arg)
         else:
             ValueError(
                 f"{_get_name(anno)} for {name} has more than 2 arguments, which is"
