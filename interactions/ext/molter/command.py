@@ -97,12 +97,12 @@ class _PrefixedArgsIterator:
         # this removes quotes from the arguments themselves
         return arg[1:-1] if arg[0] in _start_quotes else arg
 
-    def _finish_args(self) -> tuple[str]:
+    def _finish_args(self) -> typing.Tuple[str]:
         result = self.args[self.index - 1 :]
         self.index = self.length
         return result
 
-    def get_rest_of_args(self) -> tuple[str]:
+    def get_rest_of_args(self) -> typing.Tuple[str]:
         return tuple(self._remove_quotes(r) for r in self._finish_args())
 
     def consume_rest(self) -> str:
