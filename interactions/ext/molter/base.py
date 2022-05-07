@@ -396,6 +396,10 @@ class Molter:
                     self.client._websocket._dispatch.dispatch(
                         "on_molter_command_error", context, e
                     )
+                finally:
+                    self.client._websocket._dispatch.dispatch(
+                        "on_molter_command", context
+                    )
 
 
 def setup(
