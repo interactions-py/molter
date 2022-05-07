@@ -378,6 +378,15 @@ class Molter:
                     context.content_parameters, first_word
                 ).strip()
 
+                if command.subcommands and command.hierarchical_checking:
+                    try:
+                        await command._run_checks(context)
+                    except Exception as e:
+                        self.client._websocket._dispatch.dispatch(
+                            "on_molter_command_error", context, e
+                        )
+                        return
+
             if isinstance(command, Molter):
                 command = None
 

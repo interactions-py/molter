@@ -415,14 +415,17 @@ class MolterCommand:
         default=False,
     )
     "If `True`, the default help command does not show this in the help output."
-    ignore_extra: bool = attrs.field(
-        default=True,
-    )
+    ignore_extra: bool = attrs.field(default=True)
     """
     If `True`, ignores extraneous strings passed to a command if all its
     requirements are met (e.g. ?foo a b c when only expecting a and b).
     Otherwise, an error is raised. Defaults to True.
     """
+    hierarchical_checking: bool = attrs.field(default=True)
+    """If `True` and if the base of a subcommand, every subcommand underneath
+    it will run this command's checks and cooldowns before its own. Otherwise,
+    only the subcommand's checks are checked."""
+
     help: typing.Optional[str] = attrs.field()
     """The long help text for the command."""
     brief: typing.Optional[str] = attrs.field()
@@ -435,6 +438,13 @@ class MolterCommand:
         factory=dict,
     )
     "A dict of all subcommands for the command."
+
+    checks: typing.List[
+        typing.Callable[
+            [context.MolterContext], typing.Coroutine[typing.Any, typing.Any, bool]
+        ]
+    ] = attrs.field(factory=list)
+    """A list of checks for this command."""
 
     _usage: typing.Optional[str] = attrs.field(default=None)
     _type_to_converter: typing.Dict[
@@ -459,6 +469,9 @@ class MolterCommand:
 
         if self.brief is None:
             self.brief = self.help.splitlines()[0] if self.help is not None else None
+
+        if hasattr(self.callback, "__checks__"):
+            self.checks = self.callback.__checks__
 
     def __hash__(self):
         return id(self)
@@ -636,6 +649,7 @@ class MolterCommand:
         enabled: bool = True,
         hidden: bool = False,
         ignore_extra: bool = True,
+        hierarchical_checking: bool = True,
         type_to_converter: typing.Optional[
             typing.Dict[type, typing.Type[converters.MolterConverter]]
         ] = None,
@@ -672,6 +686,11 @@ class MolterCommand:
             (e.g. ?foo a b c when only expecting a and b).
             Otherwise, an error is raised. Defaults to True.
 
+            hierarchical_checking (`bool`, optional): If `True` and if the
+            base of a subcommand, every subcommand underneath it will run this
+            command's checks before its own. Otherwise, only the subcommand's
+            checks are checked. Defaults to True.
+
             type_to_converter (`dict[type, type[MolterConverter]]`, optional): A dict
             that associates converters for types. This allows you to use
             native type annotations without needing to use `typing.Annotated`.
@@ -693,6 +712,7 @@ class MolterCommand:
                 enabled=enabled,
                 hidden=hidden,
                 ignore_extra=ignore_extra,
+                hierarchical_checking=hierarchical_checking,
                 type_to_converter=type_to_converter  # type: ignore
                 or getattr(func, "_type_to_converter", {}),
             )
@@ -701,17 +721,25 @@ class MolterCommand:
 
         return wrapper
 
+    async def _run_checks(self, ctx: context.MolterContext):
+        for c in self.checks:
+            if not await c(ctx):
+                raise errors.CheckFailure(ctx, c)
+
     async def __call__(self, ctx: context.MolterContext):
         """
-        Runs the callback of this command.
+        Runs the command with checks.
+
         Args:
             ctx (`context.MolterContext`): The context to use for this command.
         """
+        await self._run_checks(ctx)
         return await self.invoke(ctx)
 
     async def invoke(self, ctx: context.MolterContext):
         """
         Runs the callback of this command.
+
         Args:
             ctx (`context.MolterContext`): The context to use for this command.
         """
@@ -794,6 +822,7 @@ def prefixed_command(
     enabled: bool = True,
     hidden: bool = False,
     ignore_extra: bool = True,
+    hierarchical_checking: bool = True,
     type_to_converter: typing.Optional[
         typing.Dict[type, typing.Type[converters.MolterConverter]]
     ] = None,
@@ -830,6 +859,11 @@ def prefixed_command(
         (e.g. ?foo a b c when only expecting a and b).
         Otherwise, an error is raised. Defaults to True.
 
+        hierarchical_checking (`bool`, optional): If `True` and if the
+        base of a subcommand, every subcommand underneath it will run this
+        command's checks before its own. Otherwise, only the subcommand's
+        checks are checked. Defaults to True.
+
         type_to_converter (`dict[type, type[MolterConverter]]`, optional): A dict
         that associates converters for types. This allows you to use
         native type annotations without needing to use `typing.Annotated`.
@@ -851,6 +885,7 @@ def prefixed_command(
             enabled=enabled,
             hidden=hidden,
             ignore_extra=ignore_extra,
+            hierarchical_checking=hierarchical_checking,
             type_to_converter=type_to_converter  # type: ignore
             or getattr(func, "_type_to_converter", {}),
         )
