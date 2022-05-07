@@ -1,3 +1,4 @@
+import datetime
 from typing import Optional
 
 from typing_extensions import Annotated
@@ -7,11 +8,11 @@ from interactions.ext import molter
 
 
 # Welcome to custom converters!
-# You can subclass Converter to do whatever you wish.
+# You can subclass MolterConverter to do whatever you wish.
 # All converters must have an asynchronous "convert" function that takes in
 # the context and an argument.
 # From there, you can do what you want, really.
-class JudgementConverter(molter.Converter):
+class JudgementConverter(molter.MolterConverter):
     async def convert(self, ctx: molter.MolterContext, argument: str):
         return f"{ctx.author.mention} is {argument}."
 
@@ -22,6 +23,13 @@ class JudgementConverter(molter.Converter):
 # you can kind of see how they could work and play with them from there.
 # This includes Optional and Greedy, which are in molter.
 # https://discordpy.readthedocs.io/en/v1.7.3/ext/commands/commands.html#converters
+
+
+# Just another converter we'll be using later.
+class DateTimeConverter(molter.MolterConverter):
+    async def convert(self, ctx: molter.MolterContext, argument: str):
+        return datetime.datetime.fromisoformat(argument)
+
 
 # Hopefully this throws you off a bit looking at this for the first time.
 # Extensions, normally, would not work for molter due to a variety of technical
@@ -54,6 +62,22 @@ class Extension(molter.MolterExtension):
         self, ctx: molter.MolterContext, judgment: Annotated[str, JudgementConverter]
     ):
         await ctx.reply(judgment)
+
+    # One of the many other ways, and admittedly one of the cool ways, is by using
+    # register_converter, which allows to you to "register" a converter for a type.
+    # It's hard to explain in words, so just see this example:
+    @molter.prefixed_command()
+    @molter.register_converter(datetime.datetime, DateTimeConverter)
+    async def convert_date(
+        self, ctx: molter.MolterContext, datetime: datetime.datetime
+    ):
+        # This will output the date given in the viewing user's timezone. Thanks Discord!
+        await ctx.reply(f"Date passed: <t:{datetime.timestamp()}:f>")
+
+    # Anyways, molter will now know that the datetime type is meant to use DateTimeConverter
+    # to convert a string argument to a datetime. This allows for very nice typehinting.
+    # While not shown here, there is globally_register_converter if you want to do the same
+    # thing but for EVERY molter command registered after the converter is registed.
 
     # Just a quick example of Optional here.
     # If an argument is marked as optional and has no default value, it'll returns None
