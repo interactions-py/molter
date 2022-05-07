@@ -137,8 +137,8 @@ def _convert_to_bool(argument: str) -> bool:
 
 
 def _merge_converters(
-    converter_dict: typing.Dict[type, typing.Type[converters.Converter]]
-) -> typing.Dict[type, typing.Type[converters.Converter]]:
+    converter_dict: typing.Dict[type, typing.Type[converters.MolterConverter]]
+) -> typing.Dict[type, typing.Type[converters.MolterConverter]]:
     global _global_type_to_converter
     combined = dict(_global_type_to_converter)
     combined.update(converter_dict)
@@ -158,7 +158,9 @@ def _get_from_anno_type(anno: typing_extensions.Annotated):
 
 
 def _get_converter_function(
-    anno: typing.Union[typing.Type[converters.Converter], converters.Converter],
+    anno: typing.Union[
+        typing.Type[converters.MolterConverter], converters.MolterConverter
+    ],
     name: str,
 ) -> typing.Callable[[context.MolterContext, str], typing.Any]:
     num_params = len(inspect.signature(anno.convert).parameters.values())
@@ -166,7 +168,7 @@ def _get_converter_function(
     # if we have three parameters for the function, it's likely it has a self parameter
     # so we need to get rid of it by initing - typehinting hates this, btw!
     # the below line will error out if we aren't supposed to init it, so that works out
-    actual_anno: converters.Converter = anno() if num_params == 3 else anno  # type: ignore
+    actual_anno: converters.MolterConverter = anno() if num_params == 3 else anno  # type: ignore
     # we can only get to this point while having three params if we successfully inited
     if num_params == 3:
         num_params -= 1
@@ -183,12 +185,12 @@ def _get_converter_function(
 def _get_converter(
     anno: type,
     name: str,
-    type_to_converter: typing.Dict[type, typing.Type[converters.Converter]],
+    type_to_converter: typing.Dict[type, typing.Type[converters.MolterConverter]],
 ) -> typing.Callable[[context.MolterContext, str], typing.Any]:  # type: ignore
     if typing_extensions.get_origin(anno) == typing_extensions.Annotated:
         anno = _get_from_anno_type(anno)
 
-    if isinstance(anno, converters.Converter):
+    if isinstance(anno, converters.MolterConverter):
         return _get_converter_function(anno, name)
 
     elif converter := type_to_converter.get(anno, None):
@@ -255,7 +257,7 @@ def _greedy_parse(greedy: converters.Greedy, param: inspect.Parameter):
 
 def _get_params(
     func: typing.Callable,
-    type_to_converter: typing.Dict[type, typing.Type[converters.Converter]],
+    type_to_converter: typing.Dict[type, typing.Type[converters.MolterConverter]],
 ):
     cmd_params: list[PrefixedCommandParameter] = []
 
@@ -436,7 +438,7 @@ class MolterCommand:
 
     _usage: typing.Optional[str] = attrs.field(default=None)
     _type_to_converter: typing.Dict[
-        type, typing.Type[converters.Converter]
+        type, typing.Type[converters.MolterConverter]
     ] = attrs.field(factory=dict, converter=_merge_converters)
 
     def __attrs_post_init__(self) -> None:
@@ -635,7 +637,7 @@ class MolterCommand:
         hidden: bool = False,
         ignore_extra: bool = True,
         type_to_converter: typing.Optional[
-            typing.Dict[type, typing.Type[converters.Converter]]
+            typing.Dict[type, typing.Type[converters.MolterConverter]]
         ] = None,
     ):
         """
@@ -670,7 +672,7 @@ class MolterCommand:
             (e.g. ?foo a b c when only expecting a and b).
             Otherwise, an error is raised. Defaults to True.
 
-            type_to_converter (`dict[type, type[Converter]]`, optional): A dict
+            type_to_converter (`dict[type, type[MolterConverter]]`, optional): A dict
             that associates converters for types. This allows you to use
             native type annotations without needing to use `typing.Annotated`.
             If this is not set, only dis-snek classes will be converted using
@@ -793,7 +795,7 @@ def prefixed_command(
     hidden: bool = False,
     ignore_extra: bool = True,
     type_to_converter: typing.Optional[
-        typing.Dict[type, typing.Type[converters.Converter]]
+        typing.Dict[type, typing.Type[converters.MolterConverter]]
     ] = None,
 ):
     """
@@ -828,7 +830,7 @@ def prefixed_command(
         (e.g. ?foo a b c when only expecting a and b).
         Otherwise, an error is raised. Defaults to True.
 
-        type_to_converter (`dict[type, type[Converter]]`, optional): A dict
+        type_to_converter (`dict[type, type[MolterConverter]]`, optional): A dict
         that associates converters for types. This allows you to use
         native type annotations without needing to use `typing.Annotated`.
         If this is not set, only dis-snek classes will be converted using
@@ -865,20 +867,20 @@ MCT = typing.TypeVar("MCT", typing.Callable, MolterCommand)
 
 
 def register_converter(
-    type_: type, converter: typing.Type[converters.Converter]
+    type_: type, converter: typing.Type[converters.MolterConverter]
 ) -> typing.Callable[..., MCT]:
     """
     A decorator that allows you to register converters for a type for a specific command.
     This allows for native type annotations without needing to use `typing(_extensions).Annotated`.
     Args:
         type_ (`type`): The type to register for.
-        converter (`type[Converter]`): The converter to use for the type.
+        converter (`type[MolterConverter]`): The converter to use for the type.
     Returns:
         `Callable | MolterCommand`: Either the callback or the command.
         If this is used after using the `molter.prefixed_command` decorator, it will be a command.
         Otherwise, it will be a callback.
     """
-    if not isinstance(converter, converters.Converter):
+    if not isinstance(converter, converters.MolterConverter):
         raise ValueError('Converter provided did not have a "convert" method.')
 
     def wrapper(command: MCT) -> MCT:
@@ -913,7 +915,7 @@ def register_converter(
 
 
 def globally_register_converter(
-    anno_type: type, converter: typing.Type[converters.Converter]
+    anno_type: type, converter: typing.Type[converters.MolterConverter]
 ) -> None:
     """
     A decorator that allows you to register converters for commands decorated/made after this is run.
@@ -921,9 +923,9 @@ def globally_register_converter(
     Note that this does not retroactively register converters for commands already made.
     Args:
         anno_type (`type`): The type to register for.
-        converter (`type[Converter]`): The converter to use for the type.
+        converter (`type[MolterConverter]`): The converter to use for the type.
     """
-    if not isinstance(converter, converters.Converter):
+    if not isinstance(converter, converters.MolterConverter):
         raise ValueError('Converter provided did not have a "convert" method.')
 
     # hate me, but i think it makes sense here

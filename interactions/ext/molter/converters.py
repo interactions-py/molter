@@ -8,7 +8,7 @@ from . import utils
 from .context import MolterContext
 
 __all__ = (
-    "Converter",
+    "MolterConverter",
     "IDConverter",
     "SnowflakeConverter",
     "MemberConverter",
@@ -36,12 +36,12 @@ async def _wrap_http_exception(
 
 
 @typing.runtime_checkable
-class Converter(typing.Protocol[T_co]):
+class MolterConverter(typing.Protocol[T_co]):
     async def convert(self, ctx: MolterContext, argument: str) -> T_co:
         raise NotImplementedError("Derived classes need to implement this.")
 
 
-class _LiteralConverter(Converter):
+class _LiteralConverter(MolterConverter):
     values: typing.Dict
 
     def __init__(self, args: typing.Any):
@@ -65,7 +65,7 @@ class _LiteralConverter(Converter):
 _ID_REGEX = re.compile(r"([0-9]{15,})$")
 
 
-class IDConverter(Converter[T_co]):
+class IDConverter(MolterConverter[T_co]):
     @staticmethod
     def _get_id_match(argument):
         return _ID_REGEX.match(argument)
@@ -254,7 +254,7 @@ class GuildConverter(IDConverter[interactions.Guild]):
             raise errors.BadArgument(f'Guild "{argument}" not found.')
 
 
-class MessageConverter(Converter[interactions.Message]):
+class MessageConverter(MolterConverter[interactions.Message]):
     # either just the id or <chan_id>-<mes_id>, a format you can get by shift clicking "copy id"
     _ID_REGEX = re.compile(
         r"(?:(?P<channel_id>[0-9]{15,})-)?(?P<message_id>[0-9]{15,})"
@@ -311,7 +311,7 @@ class Greedy(typing.List[T]):
     pass
 
 
-INTER_OBJECT_TO_CONVERTER: typing.Dict[type, typing.Type[Converter]] = {
+INTER_OBJECT_TO_CONVERTER: typing.Dict[type, typing.Type[MolterConverter]] = {
     interactions.Snowflake: SnowflakeConverter,
     interactions.Member: MemberConverter,
     interactions.User: UserConverter,

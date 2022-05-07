@@ -8,7 +8,7 @@ import interactions
 from . import utils
 from .command import MolterCommand
 from .context import MolterContext
-from .converters import Converter
+from .converters import MolterConverter
 from interactions import ext
 
 __all__ = (
@@ -203,7 +203,7 @@ class Molter:
         hidden: bool = False,
         ignore_extra: bool = True,
         type_to_converter: typing.Optional[
-            typing.Dict[type, typing.Type[Converter]]
+            typing.Dict[type, typing.Type[MolterConverter]]
         ] = None,
     ):
         """
@@ -238,7 +238,7 @@ class Molter:
             (e.g. ?foo a b c when only expecting a and b).
             Otherwise, an error is raised. Defaults to True.
 
-            type_to_converter (`dict[type, type[Converter]]`, optional): A dict
+            type_to_converter (`dict[type, type[MolterConverter]]`, optional): A dict
             that associates converters for types. This allows you to use
             native type annotations without needing to use `typing.Annotated`.
             If this is not set, only dis-snek classes will be converted using
