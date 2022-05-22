@@ -298,7 +298,6 @@ class MessageConverter(MolterConverter[interactions.Message]):
             if msg_guild_id != guild_id:
                 raise errors.BadArgument(f'Message "{argument}" not found.')
 
-            message_data = await ctx._http.get_message(channel_id, message_id)
             return interactions.Message(**message_data, _client=ctx._http)
         except inter_errors.HTTPException:
             raise errors.BadArgument(f'Message "{argument}" not found.')
