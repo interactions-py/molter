@@ -118,21 +118,27 @@ class MemberConverter(IDConverter[interactions.Member]):
         if not ctx.guild_id:
             raise errors.BadArgument("This command cannot be used in private messages.")
 
-        guild = await ctx.get_guild()
         match = self._get_id_match(argument) or re.match(
             r"<@!?([0-9]{15,})>$", argument
         )
         result = None
 
         if match:
-            result = await _wrap_http_exception(guild.get_member(int(match.group(1))))
+            raw = await _wrap_http_exception(
+                ctx._http.get_member(
+                    guild_id=int(ctx.guild_id),
+                    member_id=int(match.group(1)),
+                )
+            )
+            if raw:
+                result = interactions.Member(**raw, _client=ctx._http)
         else:
             query = argument
             if len(argument) > 5 and argument[-5] == "#":
                 query, _, _ = argument.rpartition("#")
 
             members_data = await _wrap_http_exception(
-                ctx._http.search_guild_members(int(ctx.guild_id), query, limit=100)
+                ctx._http.search_guild_members(int(ctx.guild_id), query, limit=5)
             )
             if not members_data:
                 raise errors.BadArgument(f'Member "{argument}" not found.')
@@ -157,8 +163,8 @@ class UserConverter(IDConverter[interactions.User]):
         result = None
 
         if match:
-            result = await _wrap_http_exception(ctx._http.get_user(int(match.group(1))))
-            if result:
+            raw = await _wrap_http_exception(ctx._http.get_user(int(match.group(1))))
+            if raw:
                 result = interactions.User(**result)
         else:
             # sadly, ids are the only viable way of getting
@@ -186,18 +192,22 @@ class ChannelConverter(IDConverter[interactions.Channel]):
         result = None
 
         if match:
-            result = await _wrap_http_exception(
-                ctx._http.get_channel(int(match.group(1)))
-            )
-            if result:
+            raw = await _wrap_http_exception(ctx._http.get_channel(int(match.group(1))))
+            if raw:
                 result = interactions.Channel(**result, _client=ctx._http)
         elif ctx.guild_id:
-            guild = await ctx.get_guild()
-            channels = await guild.get_all_channels()
-            result = next(
-                (c for c in channels if c.name == utils.remove_prefix(argument, "#")),
-                None,
+            raw_channels = await _wrap_http_exception(
+                ctx._http.get_all_channels(int(ctx.guild_id))
             )
+            if raw_channels:
+                result = next(
+                    (
+                        interactions.Channel(**c, _client=ctx._http)
+                        for c in raw_channels
+                        if c.get("name") == utils.remove_prefix(argument, "#")
+                    ),
+                    None,
+                )
 
         if not result:
             raise errors.BadArgument(f'Channel "{argument}" not found.')
@@ -214,23 +224,23 @@ class RoleConverter(IDConverter[interactions.Role]):
         if not ctx.guild_id:
             raise errors.BadArgument("This command cannot be used in private messages.")
 
-        guild = await ctx.get_guild()
+        raw_roles = await ctx._http.get_all_roles(int(ctx.guild_id))
         match = self._get_id_match(argument) or re.match(r"<@&([0-9]{15,})>$", argument)
         result = None
 
         if match:
             # this is faster than using get_role and is also accurate
-            result = next((r for r in guild.roles if str(r.id) == match.group(1)), None)
+            result = next((r for r in raw_roles if r["id"] == match.group(1)), None)
         else:
             result = next(
-                (r for r in guild.roles if r.name == argument),
+                (r for r in raw_roles if r["name"] == argument),
                 None,
             )
 
         if not result:
             raise errors.BadArgument(f'Role "{argument}" not found.')
 
-        return result
+        return interactions.Role(**result, _client=ctx._http)
 
 
 class GuildConverter(IDConverter[interactions.Guild]):
@@ -285,7 +295,7 @@ class MessageConverter(MolterConverter[interactions.Message]):
         guild_id = str(guild_id) if guild_id != "@me" else None
 
         try:
-            message_data = await ctx._http.get_message(channel_id, message_id)
+            message_data: dict = await ctx._http.get_message(channel_id, message_id)
 
             msg_guild_id: typing.Optional[str] = message_data.get("guild_id")
             if not msg_guild_id:
@@ -293,7 +303,7 @@ class MessageConverter(MolterConverter[interactions.Message]):
                 # messages, we have to do a request to get the channel's guild id
                 # this does mean we have to waste a request, but oh well
                 channel_data = await ctx._http.get_channel(channel_id)
-                msg_guild_id = channel_data.get("guild_id")
+                msg_guild_id = message_data["guild_id"] = channel_data.get("guild_id")
 
             if msg_guild_id != guild_id:
                 raise errors.BadArgument(f'Message "{argument}" not found.')
