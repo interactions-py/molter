@@ -27,7 +27,7 @@ __all__ = (
 NoneType = type(None)
 
 try:
-    from types import UnionType
+    from types import UnionType  # type: ignore
 
     UNION_TYPES = {typing.Union, UnionType}
 except ImportError:  # 3.8-3.9

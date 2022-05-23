@@ -55,7 +55,7 @@ class MolterContext:
             self.channel,
             self.guild,
         ):
-            if not inter_object or "_client" not in inter_object.__slots__:
+            if not inter_object or "_client" not in inter_object.__slots__:  # type: ignore
                 continue
             inter_object._client = self._http
 
