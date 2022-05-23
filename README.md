@@ -59,7 +59,8 @@ import interactions
 from interactions.ext import molter
 
 # very important to use the below instead of Extension
-# prefixed commands will not work otherwise
+# it's a subclass of it, so application commands will work
+# fine, but it's needed for prefixed commands to also work
 class Extend(molter.MolterExtension):
     def __init__(self, client: interactions.Client):
         self.client = client
