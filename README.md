@@ -3,7 +3,7 @@
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
 # interactions-molter
-An extension library for interactions.py to add prefixed (AKA text-based or 'message') commands. Ported from [`dis-snek`'s `molter`](https://github.com/Discord-Snake-Pit/molter).
+An extension library for interactions.py to add prefixed (AKA text-based or 'message') commands. Ported from [`NAFF`'s `molter`](https://github.com/NAFTeam/molter).
 
 This attempts to make the prefixed command experience much like `discord.py`'s prefixed commands, though it is *not* 1:1 on purpose.
 
