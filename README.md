@@ -66,7 +66,7 @@ class Extend(molter.MolterExtension):
 
     @molter.prefixed_command()
     async def soup(self, ctx: molter.MolterContext):
-        await ctx.reply("give soup")
+        await ctx.reply("Give soup, please!")
 
 def setup(client: interactions.Client):
     Extend(client)
