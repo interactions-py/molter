@@ -78,7 +78,7 @@ class SnowflakeConverter(IDConverter[interactions.Snowflake]):
         )
 
         if match is None:
-            raise errors.BadArgument(argument)
+            raise errors.BadArgument(f'"{argument}" is not a valid snowflake.')
 
         return interactions.Snowflake(match.group(1))
 
