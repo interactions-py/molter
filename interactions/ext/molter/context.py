@@ -99,6 +99,9 @@ class MolterContext:
 
     async def get_guild(self):
         """Gets the guild where the message was sent, if applicable."""
+        if self.guild:
+            return self.guild
+
         if not self.guild_id:
             return None
 
