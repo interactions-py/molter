@@ -84,20 +84,16 @@ class SnowflakeConverter(IDConverter[interactions.Snowflake]):
 
 
 class MemberConverter(IDConverter[interactions.Member]):
-    def _display_name(self, member: interactions.Member):
-        return member.nick or member.user.username
-
-    def _get_member_from_list(
-        self, members: typing.List[interactions.Member], argument: str
-    ):
+    def _get_member_from_list(self, members_data: typing.List[dict], argument: str):
         # sourcery skip: assign-if-exp
         result = None
         if len(argument) > 5 and argument[-5] == "#":
             result = next(
                 (
                     m
-                    for m in members
-                    if f"{m.user.username}#{m.user.discriminator}" == argument
+                    for m in members_data
+                    if f"{m['user']['username']}#{m['user']['discriminator']}"
+                    == argument
                 ),
                 None,
             )
@@ -106,8 +102,8 @@ class MemberConverter(IDConverter[interactions.Member]):
             result = next(
                 (
                     m
-                    for m in members
-                    if self._display_name(m) == argument or m.user.username == argument
+                    for m in members_data
+                    if m.get("nick") == argument or m["user"]["username"] == argument
                 ),
                 None,
             )
@@ -124,14 +120,12 @@ class MemberConverter(IDConverter[interactions.Member]):
         result = None
 
         if match:
-            raw = await _wrap_http_exception(
+            result = await _wrap_http_exception(
                 ctx._http.get_member(
                     guild_id=int(ctx.guild_id),
                     member_id=int(match.group(1)),
                 )
             )
-            if raw:
-                result = interactions.Member(**raw, _client=ctx._http)
         else:
             query = argument
             if len(argument) > 5 and argument[-5] == "#":
@@ -143,15 +137,12 @@ class MemberConverter(IDConverter[interactions.Member]):
             if not members_data:
                 raise errors.BadArgument(f'Member "{argument}" not found.')
 
-            members = [
-                interactions.Member(**data, _client=ctx._http) for data in members_data
-            ]
-            result = self._get_member_from_list(members, argument)
+            result = self._get_member_from_list(members_data, argument)
 
         if not result:
             raise errors.BadArgument(f'Member "{argument}" not found.')
 
-        return result
+        return interactions.Member(**result, _client=ctx._http)
 
 
 class UserConverter(IDConverter[interactions.User]):
@@ -163,9 +154,7 @@ class UserConverter(IDConverter[interactions.User]):
         result = None
 
         if match:
-            raw = await _wrap_http_exception(ctx._http.get_user(int(match.group(1))))
-            if raw:
-                result = interactions.User(**result)
+            result = await _wrap_http_exception(ctx._http.get_user(int(match.group(1))))
         else:
             # sadly, ids are the only viable way of getting
             # accurate user objects in a reasonable manner
@@ -179,7 +168,7 @@ class UserConverter(IDConverter[interactions.User]):
         if not result:
             raise errors.BadArgument(f'User "{argument}" not found.')
 
-        return result
+        return interactions.User(**result)
 
 
 class ChannelConverter(IDConverter[interactions.Channel]):
@@ -192,9 +181,9 @@ class ChannelConverter(IDConverter[interactions.Channel]):
         result = None
 
         if match:
-            raw = await _wrap_http_exception(ctx._http.get_channel(int(match.group(1))))
-            if raw:
-                result = interactions.Channel(**result, _client=ctx._http)
+            result = await _wrap_http_exception(
+                ctx._http.get_channel(int(match.group(1)))
+            )
         elif ctx.guild_id:
             raw_channels = await _wrap_http_exception(
                 ctx._http.get_all_channels(int(ctx.guild_id))
@@ -202,7 +191,7 @@ class ChannelConverter(IDConverter[interactions.Channel]):
             if raw_channels:
                 result = next(
                     (
-                        interactions.Channel(**c, _client=ctx._http)
+                        c
                         for c in raw_channels
                         if c.get("name") == utils.remove_prefix(argument, "#")
                     ),
@@ -212,7 +201,7 @@ class ChannelConverter(IDConverter[interactions.Channel]):
         if not result:
             raise errors.BadArgument(f'Channel "{argument}" not found.')
 
-        return result
+        return interactions.Channel(**result, _client=ctx._http)
 
 
 class RoleConverter(IDConverter[interactions.Role]):
