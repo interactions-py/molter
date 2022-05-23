@@ -139,6 +139,7 @@ def _convert_to_bool(argument: str) -> bool:
 def _merge_converters(
     converter_dict: typing.Dict[type, typing.Type[converters.MolterConverter]]
 ) -> typing.Dict[type, typing.Type[converters.MolterConverter]]:
+    # sourcery skip: dict-assign-update-to-union
     global _global_type_to_converter
     combined = dict(_global_type_to_converter)
     combined.update(converter_dict)
