@@ -71,6 +71,10 @@ class MolterContext:
         but defaults to user if the member does not exist.
         This is useful for getting a Discord user, regardless of if the
         message was from a guild or not.
+
+        This is different from both the API and interactions.py in that
+        this can be a member object. It follows the conventions of other
+        Python Discord libraries.
         """
         return self.member or self.user
 
