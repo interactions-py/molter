@@ -59,6 +59,11 @@ class MolterContext:
                 continue
             inter_object._client = self._http
 
+        if self.member:
+            # discord doesn't provide this field normally with messages, but
+            # we can easily add it here for convenience
+            self.member.user = self.user
+
     @property
     def author(self):
         """
