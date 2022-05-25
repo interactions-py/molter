@@ -26,7 +26,7 @@ SnowflakeType = typing.Union[interactions.Snowflake, int, str]
 OptionalSnowflakeType = typing.Optional[SnowflakeType]
 
 
-def remove_prefix(string: str, prefix: str):
+def remove_prefix(string: str, prefix: str) -> str:
     """
     Removes a prefix from a string if present.
 
@@ -40,7 +40,7 @@ def remove_prefix(string: str, prefix: str):
     return string[len(prefix) :] if string.startswith(prefix) else string[:]
 
 
-def remove_suffix(string: str, suffix: str):
+def remove_suffix(string: str, suffix: str) -> str:
     """
     Removes a suffix from a string if present.
 
@@ -54,7 +54,7 @@ def remove_suffix(string: str, suffix: str):
     return string[: -len(suffix)] if string.endswith(suffix) else string[:]
 
 
-async def when_mentioned(bot: interactions.Client, _):
+async def when_mentioned(bot: interactions.Client, _) -> typing.List[str]:
     """
     Returns a list of the bot's mentions.
 
@@ -64,7 +64,12 @@ async def when_mentioned(bot: interactions.Client, _):
     return [f"<@{bot.me.id}> ", f"<@!{bot.me.id}> "]  # type: ignore
 
 
-def when_mentioned_or(*prefixes: str):
+def when_mentioned_or(
+    *prefixes: str,
+) -> typing.Callable[
+    [interactions.Client, typing.Any],
+    typing.Coroutine[typing.Any, typing.Any, typing.List[str]],
+]:
     """
     Returns a list of the bot's mentions plus whatever prefixes are provided.
 
@@ -123,7 +128,7 @@ ARG_PARSE_REGEX = re.compile(_pending_regex)
 MENTION_REGEX = re.compile(r"@(everyone|here|[!&]?[0-9]{17,20})")
 
 
-def get_args_from_str(input: str) -> list:
+def get_args_from_str(input: str) -> typing.List[str]:
     """
     Get arguments from an input string.
 

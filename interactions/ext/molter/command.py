@@ -491,7 +491,7 @@ class MolterCommand:
         self._usage = usage
 
     @property
-    def qualified_name(self):
+    def qualified_name(self) -> str:
         """Returns the full qualified name of this command."""
         name_deq = collections.deque()
         command = self
@@ -504,7 +504,7 @@ class MolterCommand:
         return " ".join(name_deq)
 
     @property
-    def all_commands(self):
+    def all_commands(self) -> typing.FrozenSet["MolterCommand"]:
         """Returns all unique subcommands underneath this command."""
         return frozenset(self.subcommands.values())
 
@@ -567,11 +567,11 @@ class MolterCommand:
 
         return " ".join(results)
 
-    def is_subcommand(self):
+    def is_subcommand(self) -> bool:
         """Returns if this command is a subcommand or not."""
         return bool(self.parent)
 
-    def add_command(self, cmd: "MolterCommand"):
+    def add_command(self, cmd: "MolterCommand") -> None:
         """
         Adds a command as a subcommand to this command.
 
@@ -596,7 +596,7 @@ class MolterCommand:
                 )
             self.subcommands[alias] = cmd
 
-    def remove_command(self, name: str):
+    def remove_command(self, name: str) -> None:
         """
         Removes a command as a subcommand from this command.
         If an alias is specified, only the alias will be removed.
@@ -612,7 +612,7 @@ class MolterCommand:
         for alias in command.aliases:
             self.subcommands.pop(alias, None)
 
-    def get_command(self, name: str):
+    def get_command(self, name: str) -> typing.Optional["MolterCommand"]:
         """
         Gets a subcommand from this command. Can get subcommands of subcommands if needed.
         Args:
@@ -654,7 +654,7 @@ class MolterCommand:
         type_to_converter: typing.Optional[
             typing.Dict[type, typing.Type[converters.MolterConverter]]
         ] = None,
-    ):
+    ) -> typing.Callable[..., "MolterCommand"]:
         """
         A decorator to declare a subcommand for a molter prefixed command.
 
@@ -722,12 +722,12 @@ class MolterCommand:
 
         return wrapper
 
-    async def _run_checks(self, ctx: context.MolterContext):
+    async def _run_checks(self, ctx: context.MolterContext) -> None:
         for c in self.checks:
             if not await c(ctx):
                 raise errors.CheckFailure(ctx, c)
 
-    async def __call__(self, ctx: context.MolterContext):
+    async def __call__(self, ctx: context.MolterContext) -> None:
         """
         Runs the command with checks.
 
@@ -737,7 +737,7 @@ class MolterCommand:
         await self._run_checks(ctx)
         return await self.invoke(ctx)
 
-    async def invoke(self, ctx: context.MolterContext):
+    async def invoke(self, ctx: context.MolterContext) -> None:
         """
         Runs the callback of this command.
 
@@ -827,7 +827,7 @@ def prefixed_command(
     type_to_converter: typing.Optional[
         typing.Dict[type, typing.Type[converters.MolterConverter]]
     ] = None,
-):
+) -> typing.Callable[..., MolterCommand]:
     """
     A decorator to declare a coroutine as a molter prefixed command.
 

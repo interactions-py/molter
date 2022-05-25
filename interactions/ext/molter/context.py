@@ -65,7 +65,7 @@ class MolterContext:
             self.member.user = self.user
 
     @property
-    def author(self):
+    def author(self) -> typing.Union[interactions.Member, interactions.User]:
         """
         Either the member or user who sent the message. Prefers member,
         but defaults to user if the member does not exist.
@@ -98,7 +98,7 @@ class MolterContext:
         """Returns the HTTP client the client has."""
         return self.client._http
 
-    async def get_channel(self):
+    async def get_channel(self) -> interactions.Channel:
         """Gets the channel where the message was sent."""
         if self.channel:
             return self.channel
@@ -106,7 +106,7 @@ class MolterContext:
         self.channel = await self.message.get_channel()
         return self.channel
 
-    async def get_guild(self):
+    async def get_guild(self) -> typing.Optional[interactions.Guild]:
         """Gets the guild where the message was sent, if applicable."""
         if self.guild:
             return self.guild

@@ -80,7 +80,7 @@ class MolterExtension(interactions.Extension):
 
         return self
 
-    async def teardown(self):
+    async def teardown(self) -> None:
         # typehinting funkyness for better typehints
         self.client = typing.cast(MolterInjectedClient, self.client)
 
@@ -167,7 +167,7 @@ class Molter:
         self.client.event(self._handle_prefixed_commands, name="on_message_create")  # type: ignore
         self.client.event(self.on_molter_command_error, name="on_molter_command_error")  # type: ignore
 
-    def add_prefixed_command(self, command: MolterCommand):
+    def add_prefixed_command(self, command: MolterCommand) -> None:
         """Add a prefixed command to the client.
 
         Args:
@@ -205,7 +205,7 @@ class Molter:
         type_to_converter: typing.Optional[
             typing.Dict[type, typing.Type[MolterConverter]]
         ] = None,
-    ):
+    ) -> typing.Callable[..., MolterCommand]:
         """
         A decorator to declare a coroutine as a Molter prefixed command.
 
@@ -286,7 +286,9 @@ class Molter:
         """
         return self.default_prefix  # type: ignore
 
-    async def on_molter_command_error(self, context: MolterContext, error: Exception):
+    async def on_molter_command_error(
+        self, context: MolterContext, error: Exception
+    ) -> None:
         """
         A function that is called when a molter command errors out.
         By default, this function outputs to the default logging place.
