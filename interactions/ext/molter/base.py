@@ -20,7 +20,7 @@ __all__ = (
     "setup",
 )
 
-__version__ = "0.4.2"
+__version__ = "0.4.3"
 
 logger: logging.Logger = logging.getLogger("molter")
 
