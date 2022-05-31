@@ -12,7 +12,7 @@ if typing.TYPE_CHECKING:
 __all__ = ("MolterContext",)
 
 
-@attrs.define(slots=True)
+@attrs.define(slots=False)
 class MolterContext:
     """
     A special 'Context' object for `molter`'s commands.
@@ -47,6 +47,9 @@ class MolterContext:
     """The arguments of the command (as a list of strings)."""
     prefix: str = attrs.field(default=None)
     """The prefix used for this command."""
+
+    extras: typing.Dict[typing.Any, typing.Any] = attrs.field(init=False, factory=dict)
+    """Extras used for this context. These can contain your own custom data."""
 
     def __attrs_post_init__(self) -> None:
         for inter_object in (
