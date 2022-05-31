@@ -63,6 +63,8 @@ class PrefixedCommandParameter:
     "Was the parameter marked as a variable argument?"
     consume_rest: bool = attrs.field(default=False)
     "Was the parameter marked to consume the rest of the input?"
+    no_argument: bool = attrs.field(default=False)
+    "Does this parameter have a converter that subclasses `NoArgumentConverter`?"
 
     @property
     def optional(self) -> bool:
@@ -295,12 +297,18 @@ def _get_params(
         if typing_extensions.get_origin(anno) in UNION_TYPES:
             cmd_param.union = True
             for arg in typing_extensions.get_args(anno):
+                if isinstance(anno, converters.NoArgumentConverter):
+                    cmd_param.no_argument = True
+
                 if arg != NoneType:
                     converter = _get_converter(arg, name, type_to_converter)
                     cmd_param.converters.append(converter)
                 elif not cmd_param.optional:  # d.py-like behavior
                     cmd_param.default = None
         else:
+            if isinstance(anno, converters.NoArgumentConverter):
+                cmd_param.no_argument = True
+
             converter = _get_converter(anno, name, type_to_converter)
             cmd_param.converters.append(converter)
 
@@ -353,6 +361,10 @@ async def _convert(
             raise errors.BadArgument(
                 f'Could not convert "{arg}" into {union_types_str}.'
             )
+
+    if param.no_argument:
+        # tells converter not to eat the current argument
+        used_default = True
 
     return converted, used_default
 

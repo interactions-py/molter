@@ -9,6 +9,7 @@ from .context import MolterContext
 
 __all__ = (
     "MolterConverter",
+    "NoArgumentConverter",
     "IDConverter",
     "SnowflakeConverter",
     "MemberConverter",
@@ -39,6 +40,13 @@ async def _wrap_http_exception(
 class MolterConverter(typing.Protocol[T_co]):
     async def convert(self, ctx: MolterContext, argument: str) -> T_co:
         raise NotImplementedError("Derived classes need to implement this.")
+
+
+class NoArgumentConverter(MolterConverter[T_co]):
+    """
+    An indicator class for special type of converters that only uses the context.
+    Arguments will be "eaten up" by converters otherwise.
+    """
 
 
 class _LiteralConverter(MolterConverter):
@@ -302,7 +310,7 @@ class MessageConverter(MolterConverter[interactions.Message]):
             raise errors.BadArgument(f'Message "{argument}" not found.')
 
 
-class AttachmentConverter(MolterConverter[interactions.Attachment]):
+class AttachmentConverter(NoArgumentConverter[interactions.Attachment]):
     async def convert(self, ctx: MolterContext, _):
         # could be edited by a dev, but... why
         attachment_counter: int = ctx.extras.get("__molter_attachment_counter", 0)
