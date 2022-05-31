@@ -25,25 +25,25 @@ class MolterContext:
     """The message this represents."""
     user: interactions.User = attrs.field()
     """The user who sent the message."""
-    member: typing.Optional[interactions.Member] = attrs.field()
+    member: typing.Optional[interactions.Member] = attrs.field(default=None)
     """The guild member who sent the message, if applicable."""
 
-    channel: typing.Optional[interactions.Channel] = attrs.field()
+    channel: typing.Optional[interactions.Channel] = attrs.field(default=None)
     """The channel this message was sent through, if applicable.
     Will be `None` if `Molter.fetch_data_for_context` is False
     unless `MolterContext.get_channel` is used."""
-    guild: typing.Optional[interactions.Guild] = attrs.field()
+    guild: typing.Optional[interactions.Guild] = attrs.field(default=None)
     """The guild this message was sent through, if applicable.
     Will be `None` if `Molter.fetch_data_for_context` is False
     unless `MolterContext.get_guild` is used."""
 
-    invoked_name: str = attrs.field(default=None)
+    invoked_name: str = attrs.field(init=False, default=None)
     """The name/alias used to invoke the command."""
-    content_parameters: str = attrs.field(default=None)
+    content_parameters: str = attrs.field(init=False, default=None)
     """The message content without the prefix or command."""
-    command: "MolterCommand" = attrs.field(default=None)
+    command: "MolterCommand" = attrs.field(init=False, default=None)
     """The command invoked."""
-    args: typing.List[str] = attrs.field(factory=list)
+    args: typing.List[str] = attrs.field(init=False, factory=list)
     """The arguments of the command (as a list of strings)."""
     prefix: str = attrs.field(default=None)
     """The prefix used for this command."""
