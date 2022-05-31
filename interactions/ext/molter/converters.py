@@ -302,6 +302,19 @@ class MessageConverter(MolterConverter[interactions.Message]):
             raise errors.BadArgument(f'Message "{argument}" not found.')
 
 
+class AttachmentConverter(MolterConverter[interactions.Attachment]):
+    async def convert(self, ctx: MolterContext, _):
+        # could be edited by a dev, but... why
+        attachment_counter: int = ctx.extras.get("__molter_attachment_counter", 0)
+
+        try:
+            attach = ctx.message.attachments[attachment_counter]
+            ctx.extras["__molter_attachment_counter"] = attachment_counter + 1
+            return attach
+        except IndexError:
+            raise errors.BadArgument("There are no more attachments for this context.")
+
+
 class Greedy(typing.List[T]):
     # this class doesn't actually do a whole lot
     # it's more or less simply a note to the parameter
@@ -317,4 +330,5 @@ INTER_OBJECT_TO_CONVERTER: typing.Dict[type, typing.Type[MolterConverter]] = {
     interactions.Role: RoleConverter,
     interactions.Guild: GuildConverter,
     interactions.Message: MessageConverter,
+    interactions.Attachment: AttachmentConverter,
 }
