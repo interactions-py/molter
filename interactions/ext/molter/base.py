@@ -71,10 +71,10 @@ class MolterExtension(interactions.Extension):
             self, predicate=lambda x: isinstance(x, MolterCommand)
         ):
             cmd: MolterCommand
+            cmd.extension = self
+            cmd.callback = functools.partial(cmd.callback, self)
 
             if not cmd.is_subcommand():  # we don't want to add subcommands
-                cmd.extension = self
-                cmd.callback = functools.partial(cmd.callback, self)
                 self._molter_prefixed_commands.append(cmd)
                 self.client.molter.add_prefixed_command(cmd)
 
