@@ -170,24 +170,29 @@ class MolterContext:
         """
         Sends a message in the channel where the message came from.
 
-        :param content?: The contents of the message as a string or \
-            string-converted value.
-        :type content: Optional[str]
-        :param tts?: Whether the message utilizes the text-to-speech Discord \
-            programme or not.
-        :type tts: Optional[bool]
-        :param files?: A file or list of files to be attached to the message.
-        :type files: Optional[Union[File, List[File]]]
-        :param embeds?: An embed, or list of embeds for the message.
-        :type embeds: Optional[Union[Embed, List[Embed]]]
-        :param allowed_mentions?: The message interactions/mention limits \
-            that the message can refer to.
-        :type allowed_mentions: Optional[MessageInteraction]
-        :param components?: A component, or list of components for the message.
-        :type components: Optional[Union[ActionRow, Button, SelectMenu, \
-            List[Actionrow], List[Button], List[SelectMenu]]]
-        :return: The sent message as an object.
-        :rtype: Message
+        Args:
+            content (`str`, optional): The contents of the message as a string
+            or string-converted value.
+
+            tts (`bool`, optional): Whether the message utilizes the text-to-speech
+            Discord programme or not.
+
+            files (`interactions.File | list[interactions.File]`, optional):
+            A file or list of files to be attached to the message.
+
+            embeds (`interactions.Embed | list[interactions.Embed]`, optional):
+            An embed, or list of embeds for the message.
+
+            allowed_mentions (`interactions.MessageInteraction`, optional):
+            The message interactions/mention limits that the message can refer to.
+
+            components(`interactions.ActionRow | interactions.Button |
+            interactions.SelectMenu | list[interactions.ActionRow] |
+            list[interactions.Button] | list[interactions.SelectMenu]`, optional):
+            A component, or list of components for the message.
+
+        Returns:
+            `interactions.Message`: The sent message as an object.
         """
 
         channel = self._get_channel_for_send()
@@ -230,24 +235,29 @@ class MolterContext:
         """
         Sends a new message replying to the old.
 
-        :param content?: The contents of the message as a string or \
-            string-converted value.
-        :type content: Optional[str]
-        :param tts?: Whether the message utilizes the text-to-speech Discord \
-            programme or not.
-        :type tts: Optional[bool]
-        :param files?: A file or list of files to be attached to the message.
-        :type files: Optional[Union[File, List[File]]]
-        :param embeds?: An embed, or list of embeds for the message.
-        :type embeds: Optional[Union[Embed, List[Embed]]]
-        :param allowed_mentions?: The message interactions/mention limits \
-            that the message can refer to.
-        :type allowed_mentions: Optional[MessageInteraction]
-        :param components?: A component, or list of components for the message.
-        :type components: Optional[Union[ActionRow, Button, SelectMenu, \
-            List[Actionrow], List[Button], List[SelectMenu]]]
-        :return: The sent message as an object.
-        :rtype: Message
+        Args:
+            content (`str`, optional): The contents of the message as a string
+            or string-converted value.
+
+            tts (`bool`, optional): Whether the message utilizes the text-to-speech
+            Discord programme or not.
+
+            files (`interactions.File | list[interactions.File]`, optional):
+            A file or list of files to be attached to the message.
+
+            embeds (`interactions.Embed | list[interactions.Embed]`, optional):
+            An embed, or list of embeds for the message.
+
+            allowed_mentions (`interactions.MessageInteraction`, optional):
+            The message interactions/mention limits that the message can refer to.
+
+            components(`interactions.ActionRow | interactions.Button |
+            interactions.SelectMenu | list[interactions.ActionRow] |
+            list[interactions.Button] | list[interactions.SelectMenu]`, optional):
+            A component, or list of components for the message.
+
+        Returns:
+            `interactions.Message`: The sent message as an object.
         """
 
         return await self.message.reply(
