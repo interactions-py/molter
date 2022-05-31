@@ -311,7 +311,7 @@ class MessageConverter(MolterConverter[interactions.Message]):
 
 
 class AttachmentConverter(NoArgumentConverter[interactions.Attachment]):
-    async def convert(self, ctx: MolterContext, _):
+    async def convert(self, ctx: MolterContext, _) -> interactions.Attachment:
         # could be edited by a dev, but... why
         attachment_counter: int = ctx.extras.get("__molter_attachment_counter", 0)
 
