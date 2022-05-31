@@ -48,7 +48,9 @@ class MolterContext:
     prefix: str = attrs.field(default=None)
     """The prefix used for this command."""
 
-    extras: typing.Dict[typing.Any, typing.Any] = attrs.field(init=False, factory=dict)
+    extras: typing.Dict[typing.Any, typing.Any] = attrs.field(
+        init=False, factory=dict, repr=False
+    )
     """Extras used for this context. These can contain your own custom data."""
 
     def __attrs_post_init__(self) -> None:
