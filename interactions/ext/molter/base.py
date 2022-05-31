@@ -35,11 +35,11 @@ base = ext.Base(
     version=version,
     link="https://github.com/interactions-py/molter/",
     description=(
-        "An extension library for interactions.py to add prefixed commands. Ported from"
-        " dis-snek."
+        "An extension library for interactions.py to add prefixed commands. A"
+        " demonstration of molter-core."
     ),
     packages=["interactions.ext.molter"],
-    requirements=["discord-py-interactions>=4.1.0"],
+    requirements=["discord-py-interactions>=4.2.0"],
 )
 
 
