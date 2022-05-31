@@ -12,7 +12,7 @@ if typing.TYPE_CHECKING:
 __all__ = ("MolterContext",)
 
 
-@attrs.define(slots=False)
+@attrs.define(slots=True)
 class MolterContext:
     """
     A special 'Context' object for `molter`'s commands.
