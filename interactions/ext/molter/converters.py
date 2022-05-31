@@ -42,11 +42,14 @@ class MolterConverter(typing.Protocol[T_co]):
         raise NotImplementedError("Derived classes need to implement this.")
 
 
-class NoArgumentConverter(MolterConverter[T_co]):
+class NoArgumentConverter(typing.Generic[T_co]):
     """
     An indicator class for special type of converters that only uses the context.
     Arguments will be "eaten up" by converters otherwise.
     """
+
+    async def convert(self, ctx: MolterContext, argument: str) -> T_co:
+        raise NotImplementedError("Derived classes need to implement this.")
 
 
 class _LiteralConverter(MolterConverter):
@@ -338,5 +341,5 @@ INTER_OBJECT_TO_CONVERTER: typing.Dict[type, typing.Type[MolterConverter]] = {
     interactions.Role: RoleConverter,
     interactions.Guild: GuildConverter,
     interactions.Message: MessageConverter,
-    interactions.Attachment: AttachmentConverter,
+    interactions.Attachment: AttachmentConverter,  # type: ignore
 }

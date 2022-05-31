@@ -297,7 +297,9 @@ def _get_params(
         if typing_extensions.get_origin(anno) in UNION_TYPES:
             cmd_param.union = True
             for arg in typing_extensions.get_args(anno):
-                if isinstance(anno, converters.NoArgumentConverter):
+                if isinstance(anno, converters.NoArgumentConverter) or issubclass(
+                    type_to_converter.get(anno, object), converters.NoArgumentConverter
+                ):
                     cmd_param.no_argument = True
 
                 if arg != NoneType:
@@ -306,7 +308,9 @@ def _get_params(
                 elif not cmd_param.optional:  # d.py-like behavior
                     cmd_param.default = None
         else:
-            if isinstance(anno, converters.NoArgumentConverter):
+            if isinstance(anno, converters.NoArgumentConverter) or issubclass(
+                type_to_converter.get(anno, object), converters.NoArgumentConverter
+            ):
                 cmd_param.no_argument = True
 
             converter = _get_converter(anno, name, type_to_converter)
@@ -809,6 +813,15 @@ class MolterCommand:
 
             if param_index < len(self.parameters):
                 for param in self.parameters[param_index:]:
+                    if param.no_argument:
+                        converted, _ = await _convert(param, ctx, None)  # type: ignore
+                        if not param.consume_rest:
+                            new_args.append(converted)
+                        else:
+                            kwargs[param.name] = converted
+                            break
+                        continue
+
                     if not param.optional:
                         raise errors.BadArgument(
                             f"{param.name} is a required argument that is missing."
