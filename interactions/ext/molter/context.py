@@ -126,22 +126,15 @@ class MolterContext:
         """
         Gets the channel to send a message for.
         Unlike `get_channel`, we don't exactly need a channel with
-        fully correct attributes, so a cached result works well enough.
-        We can also use a dummy channel here if necessary.
+        fully correct attributes, so we can use a dummy channel here.
         """
-
-        if self.channel:
-            return self.channel
-
-        if channel := self._http.cache.channels.get(str(self.channel_id)):
-            chan = channel.value
-            chan._client = self._http
-            return chan
 
         # this is a dummy channel - we don't really care about the type or much of anything
         # so we've included the basics like the id and the client and that's it
         # really, if i could remove the type, i would
-        return interactions.Channel(id=self.channel_id, type=0, _client=self._http)
+        return self.channel or interactions.Channel(
+            id=self.channel_id, type=0, _client=self._http
+        )
 
     async def send(
         self,
