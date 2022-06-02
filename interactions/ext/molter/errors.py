@@ -10,6 +10,8 @@ __all__ = ("MolterException", "BadArgument", "CheckFailure")
 
 
 class MolterException(Exception):
+    """The base exception for molter exceptions."""
+
     pass
 
 
