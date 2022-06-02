@@ -241,7 +241,7 @@ class Molter:
             type_to_converter (`dict[type, type[MolterConverter]]`, optional): A dict
             that associates converters for types. This allows you to use
             native type annotations without needing to use `typing.Annotated`.
-            If this is not set, only dis-snek classes will be converted using
+            If this is not set, only interactions.py classes will be converted using
             built-in converters.
 
         Returns:
