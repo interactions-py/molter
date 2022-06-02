@@ -30,19 +30,25 @@ class CheckFailure(MolterException):
 
     Attributes:
         context (`MolterContext`): The context for this check.
-        check (`Callable[[MolterContext], typing.Coroutine[Any, Any, bool]]`): The check that failed.
+
         message: (`str`, optional): The error message.
+
+        check (`Callable[[MolterContext], typing.Coroutine[Any, Any, bool]]`, optional):
+        The check that failed. This is automatically passed in if the check fails -
+        there is no need to do it yourself.
     """
 
     def __init__(
         self,
         context: "MolterContext",
+        message: typing.Optional[str] = "A check has failed.",
+        *,
         check: typing.Callable[
             ["MolterContext"], typing.Coroutine[typing.Any, typing.Any, bool]
-        ],
-        message: typing.Optional[str] = "A check has failed.",
+        ] = None,
     ):
         self.context = context
         self.check = check
+        self.message = message
 
         super().__init__(message)

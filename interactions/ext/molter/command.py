@@ -740,8 +740,12 @@ class MolterCommand:
 
     async def _run_checks(self, ctx: context.MolterContext) -> None:
         for c in self.checks:
-            if not await c(ctx):
-                raise errors.CheckFailure(ctx, c)
+            try:
+                if not await c(ctx):
+                    raise errors.CheckFailure(ctx, check=c)
+            except errors.CheckFailure as e:
+                # pass in check function
+                raise errors.CheckFailure(ctx, e.message, check=c)
 
     async def __call__(self, ctx: context.MolterContext) -> None:
         """
