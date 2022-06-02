@@ -1,13 +1,15 @@
 import typing
 
+import interactions
 from .command import MCT
 from .command import MolterCommand
+from .errors import CheckFailure
 
 if typing.TYPE_CHECKING:
     from .context import MolterContext
 
 
-__all__ = ("check",)
+__all__ = ("check", "has_permissions", "has_guild_permissions")
 
 
 def check(
@@ -32,3 +34,31 @@ def check(
         return coro
 
     return wrapper
+
+
+def has_permissions(
+    *permissions: interactions.Permissions,
+) -> typing.Callable[..., MCT]:
+    combined_permissions = interactions.Permissions(0)
+    for perm in permissions:
+        combined_permissions |= perm
+
+    async def _permission_check(ctx: "MolterContext"):
+        member_permissions = await ctx.compute_permissions()
+        return combined_permissions in member_permissions
+
+    return check(_permission_check)  # type: ignore
+
+
+def has_guild_permissions(
+    *permissions: interactions.Permissions,
+) -> typing.Callable[..., MCT]:
+    combined_permissions = interactions.Permissions(0)
+    for perm in permissions:
+        combined_permissions |= perm
+
+    async def _permission_check(ctx: "MolterContext"):
+        guild_permissions = await ctx.compute_guild_permissions()
+        return combined_permissions in guild_permissions
+
+    return check(_permission_check)  # type: ignore
