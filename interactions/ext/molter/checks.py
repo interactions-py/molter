@@ -9,7 +9,7 @@ if typing.TYPE_CHECKING:
     from .context import MolterContext
 
 
-__all__ = ("check", "has_permissions", "has_guild_permissions")
+__all__ = ("check", "has_permissions", "has_guild_permissions", "guild_only", "dm_only")
 
 
 def check(
@@ -92,3 +92,27 @@ def has_guild_permissions(
         return result
 
     return check(_permission_check)  # type: ignore
+
+
+def guild_only() -> typing.Callable[..., MCT]:
+    """A check to make the command only run in guilds."""
+
+    async def _guild_check(ctx: "MolterContext"):
+        if not ctx.guild_id:
+            raise CheckFailure(ctx, "This command cannot be used in private messages.")
+        return True
+
+    return check(_guild_check)  # type: ignore
+
+
+def dm_only() -> typing.Callable[..., MCT]:
+    """A check to make the command only run in DMs."""
+
+    async def _guild_check(ctx: "MolterContext"):
+        if ctx.guild_id:
+            raise CheckFailure(
+                ctx, "This command can only be used in private messages."
+            )
+        return True
+
+    return check(_guild_check)  # type: ignore
