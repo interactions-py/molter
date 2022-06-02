@@ -12,6 +12,12 @@ if typing.TYPE_CHECKING:
 __all__ = ("MolterContext",)
 
 
+ALL_PERMISSIONS = interactions.Permissions(0)
+
+for perm in interactions.Permissions:
+    ALL_PERMISSIONS |= perm
+
+
 @attrs.define(slots=True)
 class MolterContext:
     """
@@ -52,6 +58,13 @@ class MolterContext:
         init=False, factory=dict, repr=False
     )
     """Extras used for this context. These can contain your own custom data."""
+
+    _guild_permissions: typing.Optional[interactions.Permissions] = attrs.field(
+        init=False, default=None
+    )
+    _channel_permissions: typing.Optional[interactions.Permissions] = attrs.field(
+        init=False, default=None
+    )
 
     def __attrs_post_init__(self) -> None:
         for inter_object in (
@@ -121,6 +134,131 @@ class MolterContext:
 
         self.guild = await self.message.get_guild()
         return self.guild
+
+    async def compute_guild_permissions(self) -> interactions.Permissions:
+        """
+        Computes the guild (role-only) permissions for the member that sent the message.
+        This factors in ownership and the roles of the member.
+
+        The result may be expensive to compute, so it is cached after its first use.
+        The context must have a guild ID and member set.
+
+        This uses the pseudocode featured in Discord's own documentation about
+        permission overwrites as a base.
+
+        Returns:
+            `interactions.Permissions`: The guild permissions for the member
+            that sent the message.
+        """
+        if self._guild_permissions:
+            return self._guild_permissions
+
+        if not self.member:
+            raise ValueError("This context doesn't have a member!")
+
+        guild = await self.get_guild()
+
+        if not guild:
+            raise ValueError("This context doesn't have a guild!")
+
+        if int(self.user.id) == guild.owner_id:
+            self._guild_permissions = ALL_PERMISSIONS
+            return ALL_PERMISSIONS
+
+        roles = await guild.get_all_roles()
+
+        role_everyone = next(r for r in roles if r.id == guild.id)
+        permissions = interactions.Permissions(int(role_everyone.permissions))
+
+        if self.member.roles:
+            member_roles = [r for r in roles if int(r.id) in self.member.roles]
+        else:
+            member_roles = []
+
+        for role in member_roles:
+            permissions |= interactions.Permissions(int(role.permissions))
+
+        if (
+            permissions & interactions.Permissions.ADMINISTRATOR
+            == interactions.Permissions.ADMINISTRATOR
+        ):
+            self._guild_permissions = ALL_PERMISSIONS
+            return ALL_PERMISSIONS
+
+        self._guild_permissions = permissions
+        return permissions
+
+    async def _compute_overwrites(self, base_permissions: interactions.Permissions):
+        """Calculates and adds in overwrites based on the guild permissions."""
+        if self._channel_permissions:
+            return self._channel_permissions
+        if (
+            base_permissions & interactions.Permissions.ADMINISTRATOR
+            == interactions.Permissions.ADMINISTRATOR
+        ):
+            self._channel_permissions = ALL_PERMISSIONS
+            return ALL_PERMISSIONS
+
+        if not self.member:
+            raise ValueError("This context doesn't have a member!")
+
+        if not self.guild_id:
+            raise ValueError("This context doesn't have a guild!")
+
+        channel = await self.get_channel()
+
+        permissions = base_permissions
+        overwrites = channel.permission_overwrites
+
+        if overwrite_everyone := next(
+            (o for o in overwrites if o.id == int(self.guild_id)), None
+        ):
+            permissions &= ~interactions.Permissions(int(overwrite_everyone.deny))
+            permissions |= interactions.Permissions(int(overwrite_everyone.allow))
+
+        allow = interactions.Permissions(0)
+        deny = interactions.Permissions(0)
+
+        for role_id in self.member.roles:
+            if overwrite_role := next(
+                (o for o in overwrites if o.id == str(role_id)), None
+            ):
+                allow |= interactions.Permissions(int(overwrite_role.allow))
+                deny |= interactions.Permissions(int(overwrite_role.deny))
+
+        permissions &= ~deny
+        permissions |= allow
+
+        if overwrite_member := next(
+            (o for o in overwrites if o.id == str(self.member.id)), None
+        ):
+            permissions &= ~interactions.Permissions(int(overwrite_member.deny))
+            permissions |= interactions.Permissions(int(overwrite_member.allow))
+
+        self._channel_permissions = permissions
+        return permissions
+
+    async def compute_permissions(self) -> interactions.Permissions:
+        """
+        Computes the permissions for the member that sent the message.
+        This factors in ownership, roles, and channel overwrites.
+
+        The result may be expensive to compute, so it is cached after its first use.
+        The context must have a guild ID and member set.
+
+        This uses the pseudocode featured in Discord's own documentation about
+        permission overwrites as a base.
+
+        Returns:
+            `interactions.Permissions`: The permissions for the member
+            that sent the message.
+        """
+
+        if self._channel_permissions:
+            return self._channel_permissions
+
+        base_permissions = await self.compute_guild_permissions()
+        return await self._compute_overwrites(base_permissions)
 
     def _get_channel_for_send(self) -> interactions.Channel:
         """
