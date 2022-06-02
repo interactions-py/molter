@@ -19,7 +19,7 @@ __all__ = (
     "escape_mentions",
 )
 
-# most of these come from dis-snek
+# most of these come from naff
 # thanks, polls!
 
 SnowflakeType = typing.Union[interactions.Snowflake, int, str]
