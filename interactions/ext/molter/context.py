@@ -3,7 +3,6 @@ import typing
 import attrs
 
 import interactions
-from . import utils
 
 if typing.TYPE_CHECKING:
     from .command import MolterCommand
