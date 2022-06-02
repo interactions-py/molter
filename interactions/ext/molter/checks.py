@@ -39,6 +39,15 @@ def check(
 def has_permissions(
     *permissions: interactions.Permissions,
 ) -> typing.Callable[..., MCT]:
+    """
+    A check to see if the member has permissions specified for the specific context.
+    Considers guild ownership, roles, and channel overwrites.
+    Will fail in DMs.
+
+    Args:
+        permissions (`interactions.Permissions`): A list of permissions to check.
+    """
+
     combined_permissions = interactions.Permissions(0)
     for perm in permissions:
         combined_permissions |= perm
@@ -59,6 +68,15 @@ def has_permissions(
 def has_guild_permissions(
     *permissions: interactions.Permissions,
 ) -> typing.Callable[..., MCT]:
+    """
+    A check to see if the member has permissions specified for the guild.
+    Considers guild ownership and roles.
+    Will fail in DMs.
+
+    Args:
+        permissions (`interactions.Permissions`): A list of permissions to check.
+    """
+
     combined_permissions = interactions.Permissions(0)
     for perm in permissions:
         combined_permissions |= perm
