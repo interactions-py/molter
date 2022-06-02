@@ -45,7 +45,13 @@ def has_permissions(
 
     async def _permission_check(ctx: "MolterContext"):
         member_permissions = await ctx.compute_permissions()
-        return combined_permissions in member_permissions
+        result = combined_permissions in member_permissions
+
+        if not result:
+            raise CheckFailure(
+                ctx, "You do not have the proper permissions to use this command."
+            )
+        return result
 
     return check(_permission_check)  # type: ignore
 
@@ -59,6 +65,12 @@ def has_guild_permissions(
 
     async def _permission_check(ctx: "MolterContext"):
         guild_permissions = await ctx.compute_guild_permissions()
-        return combined_permissions in guild_permissions
+        result = combined_permissions in guild_permissions
+
+        if not result:
+            raise CheckFailure(
+                ctx, "You do not have the proper permissions to use this command."
+            )
+        return result
 
     return check(_permission_check)  # type: ignore
