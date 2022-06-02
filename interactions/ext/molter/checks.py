@@ -42,7 +42,7 @@ def has_permissions(
     """
     A check to see if the member has permissions specified for the specific context.
     Considers guild ownership, roles, and channel overwrites.
-    Will fail in DMs.
+    Works for DMs.
 
     Args:
         permissions (`interactions.Permissions`): A list of permissions to check.

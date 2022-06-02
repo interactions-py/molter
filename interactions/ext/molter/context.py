@@ -243,7 +243,7 @@ class MolterContext:
         This factors in ownership, roles, and channel overwrites.
 
         The result may be expensive to compute, so it is cached after its first use.
-        The context must have a guild ID and member set.
+        Unlike compute_guild_permissions, this works for DM messages.
 
         This uses the pseudocode featured in Discord's own documentation about
         permission overwrites as a base.
@@ -255,6 +255,10 @@ class MolterContext:
 
         if self._channel_permissions:
             return self._channel_permissions
+
+        if not self.guild_id:
+            # basic text permissions, no tts, yes view channel
+            return interactions.Permissions(0b1111100110001000000)
 
         base_permissions = await self.compute_guild_permissions()
         return await self._compute_overwrites(base_permissions)
