@@ -8,7 +8,10 @@ if typing.TYPE_CHECKING:
     from .command import MolterCommand
     from .base import MolterInjectedClient
 
-__all__ = ("MolterContext",)
+__all__ = (
+    "MolterContext",
+    "HybridContext",
+)
 
 
 ALL_PERMISSIONS = interactions.Permissions(0)
@@ -17,7 +20,7 @@ for perm in interactions.Permissions:
     ALL_PERMISSIONS |= perm
 
 
-@attrs.define(slots=True)
+@attrs.define()
 class MolterContext:
     """
     A special 'Context' object for `molter`'s commands.
@@ -72,7 +75,11 @@ class MolterContext:
             self.channel,
             self.guild,
         ):
-            if not inter_object or "_client" not in inter_object.__slots__:  # type: ignore
+            if (
+                not inter_object
+                or inter_object is interactions.MISSING
+                or "_client" not in inter_object.__slots__  # type: ignore
+            ):
                 continue
             inter_object._client = self._http
 
@@ -322,7 +329,7 @@ class MolterContext:
             allowed_mentions (`interactions.MessageInteraction`, optional):
             The message interactions/mention limits that the message can refer to.
 
-            components(`interactions.ActionRow | interactions.Button |
+            components (`interactions.ActionRow | interactions.Button |
             interactions.SelectMenu | list[interactions.ActionRow] |
             list[interactions.Button] | list[interactions.SelectMenu]`, optional):
             A component, or list of components for the message.
@@ -387,7 +394,7 @@ class MolterContext:
             allowed_mentions (`interactions.MessageInteraction`, optional):
             The message interactions/mention limits that the message can refer to.
 
-            components(`interactions.ActionRow | interactions.Button |
+            components (`interactions.ActionRow | interactions.Button |
             interactions.SelectMenu | list[interactions.ActionRow] |
             list[interactions.Button] | list[interactions.SelectMenu]`, optional):
             A component, or list of components for the message.
@@ -395,6 +402,237 @@ class MolterContext:
         Returns:
             `interactions.Message`: The sent message as an object.
         """
+
+        return await self.message.reply(
+            content,
+            tts=tts,
+            files=files,
+            embeds=embeds,
+            allowed_mentions=allowed_mentions,
+            components=components,
+            **kwargs,
+        )
+
+
+@attrs.define()
+class HybridContext(MolterContext):
+    """
+    A special subclass of `MolterContext` for hybrid commands.
+    This tries to handle the differences between slash and prefixed commands seemlessly.
+    """
+
+    client: "typing.Optional[MolterInjectedClient]" = attrs.field(default=None)
+    """The bot instance."""
+    message: typing.Optional[interactions.Message] = attrs.field(default=None)
+    """The message this represents."""
+
+    interaction: typing.Optional[interactions.CommandContext] = attrs.field(
+        default=None
+    )
+    """The interaction context, if this is for the slash command version."""
+
+    def __attrs_post_init__(self) -> None:
+        if self.interaction and self.interaction.member:
+            self._channel_permissions = self.interaction.member.permissions
+
+        return super().__attrs_post_init__()
+
+    @property
+    def bot(self) -> "typing.Optional[MolterInjectedClient]":
+        """An alias to `MolterContext.client`."""
+        return self.client
+
+    @property
+    def channel_id(self) -> interactions.Snowflake:
+        """Returns the channel ID where the message was sent."""
+        return self.interaction.channel_id if self.interaction else self.message.channel_id  # type: ignore
+
+    @property
+    def guild_id(self) -> typing.Optional[interactions.Snowflake]:
+        """Returns the guild ID where the message was sent, if applicable."""
+        return self.interaction.guild_id if self.interaction else self.message.guild_id  # type: ignore
+
+    @property
+    def _http(self) -> interactions.HTTPClient:
+        """Returns the HTTP client the client has."""
+        return self.interaction.client if self.interaction else self.client._http
+
+    async def get_channel(self) -> interactions.Channel:
+        """Gets the channel where the message was sent."""
+        if self.channel:
+            return self.channel
+
+        if self.interaction:
+            self.channel = await self.interaction.get_channel()
+        else:
+            self.channel = await self.message.get_channel()  # type: ignore
+        return self.channel
+
+    async def get_guild(self) -> typing.Optional[interactions.Guild]:
+        """Gets the guild where the message was sent, if applicable."""
+        if self.guild:
+            return self.guild
+
+        if not self.guild_id:
+            return None
+
+        if self.interaction:
+            self.guild = await self.interaction.get_guild()
+        else:
+            self.guild = await self.message.get_guild()  # type: ignore
+        return self.guild
+
+    async def send(
+        self,
+        content: typing.Optional[str] = interactions.MISSING,  # type: ignore
+        *,
+        tts: typing.Optional[bool] = interactions.MISSING,  # type: ignore
+        files: typing.Optional[
+            typing.Union[interactions.File, typing.List[interactions.File]]
+        ] = interactions.MISSING,  # type: ignore
+        embeds: typing.Optional[
+            typing.Union["interactions.Embed", typing.List["interactions.Embed"]]
+        ] = interactions.MISSING,  # type: ignore
+        allowed_mentions: typing.Optional[
+            "interactions.MessageInteraction"
+        ] = interactions.MISSING,  # type: ignore
+        components: typing.Optional[
+            typing.Union[
+                "interactions.ActionRow",
+                "interactions.Button",
+                "interactions.SelectMenu",
+                typing.List["interactions.ActionRow"],
+                typing.List["interactions.Button"],
+                typing.List["interactions.SelectMenu"],
+            ]
+        ] = interactions.MISSING,  # type: ignore
+        ephemeral: bool = False,
+        **kwargs,
+    ) -> "interactions.Message":  # type: ignore
+        """
+        Either responds to an interaction (if present) or sends a message in the
+        channel where the message came from.
+
+        Args:
+            content (`str`, optional): The contents of the message as a string
+            or string-converted value.
+
+            tts (`bool`, optional): Whether the message utilizes the text-to-speech
+            Discord programme or not.
+
+            files (`interactions.File | list[interactions.File]`, optional):
+            A file or list of files to be attached to the message.
+            This property is ignored for interactions.
+
+            embeds (`interactions.Embed | list[interactions.Embed]`, optional):
+            An embed, or list of embeds for the message.
+
+            allowed_mentions (`interactions.MessageInteraction`, optional):
+            The message interactions/mention limits that the message can refer to.
+
+            components (`interactions.ActionRow | interactions.Button |
+            interactions.SelectMenu | list[interactions.ActionRow] |
+            list[interactions.Button] | list[interactions.SelectMenu]`, optional):
+            A component, or list of components for the message.
+
+            ephemeral (`bool`, optional): Whether the response is hidden or not.
+            This property is ignored for prefixed commands.
+
+        Returns:
+            `interactions.Message`: The sent message as an object.
+        """
+
+        if self.interaction:
+            return await self.interaction.send(
+                content,
+                tts=tts,
+                embeds=embeds,
+                allowed_mentions=allowed_mentions,
+                components=components,
+                ephemeral=ephemeral,
+                **kwargs,
+            )
+
+        channel = self._get_channel_for_send()
+        return await channel.send(
+            content,
+            tts=tts,
+            files=files,
+            embeds=embeds,
+            allowed_mentions=allowed_mentions,
+            components=components,
+            **kwargs,
+        )
+
+    async def reply(
+        self,
+        content: typing.Optional[str] = interactions.MISSING,  # type: ignore
+        *,
+        tts: typing.Optional[bool] = interactions.MISSING,  # type: ignore
+        files: typing.Optional[
+            typing.Union[interactions.File, typing.List[interactions.File]]
+        ] = interactions.MISSING,  # type: ignore
+        embeds: typing.Optional[
+            typing.Union["interactions.Embed", typing.List["interactions.Embed"]]
+        ] = interactions.MISSING,  # type: ignore
+        allowed_mentions: typing.Optional[
+            "interactions.MessageInteraction"
+        ] = interactions.MISSING,  # type: ignore
+        components: typing.Optional[
+            typing.Union[
+                "interactions.ActionRow",
+                "interactions.Button",
+                "interactions.SelectMenu",
+                typing.List["interactions.ActionRow"],
+                typing.List["interactions.Button"],
+                typing.List["interactions.SelectMenu"],
+            ]
+        ] = interactions.MISSING,  # type: ignore
+        ephemeral: bool = False,
+        **kwargs,
+    ) -> "interactions.Message":  # type: ignore
+        """
+        Either responds to an interaction (if present) or sends a new message replying to the old.
+
+        Args:
+            content (`str`, optional): The contents of the message as a string
+            or string-converted value.
+
+            tts (`bool`, optional): Whether the message utilizes the text-to-speech
+            Discord programme or not.
+
+            files (`interactions.File | list[interactions.File]`, optional):
+            A file or list of files to be attached to the message.
+            This property is ignored for interactions.
+
+            embeds (`interactions.Embed | list[interactions.Embed]`, optional):
+            An embed, or list of embeds for the message.
+
+            allowed_mentions (`interactions.MessageInteraction`, optional):
+            The message interactions/mention limits that the message can refer to.
+
+            components (`interactions.ActionRow | interactions.Button |
+            interactions.SelectMenu | list[interactions.ActionRow] |
+            list[interactions.Button] | list[interactions.SelectMenu]`, optional):
+            A component, or list of components for the message.
+
+            ephemeral (`bool`, optional): Whether the response is hidden or not.
+            This property is ignored for prefixed commands.
+
+        Returns:
+            `interactions.Message`: The sent message as an object.
+        """
+
+        if self.interaction:
+            return await self.interaction.send(
+                content,
+                tts=tts,
+                embeds=embeds,
+                allowed_mentions=allowed_mentions,
+                components=components,
+                ephemeral=ephemeral,
+                **kwargs,
+            )
 
         return await self.message.reply(
             content,

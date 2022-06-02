@@ -442,6 +442,8 @@ class MolterCommand:
     """If `True` and if the base of a subcommand, every subcommand underneath
     it will run this command's checks and cooldowns before its own. Otherwise,
     only the subcommand's checks are checked."""
+    hybrid: bool = attrs.field(default=False)
+    """Is this command a hybrid command or not?"""
 
     help: typing.Optional[str] = attrs.field()
     """The long help text for the command."""
@@ -466,7 +468,7 @@ class MolterCommand:
     _usage: typing.Optional[str] = attrs.field(default=None)
     _type_to_converter: typing.Dict[
         type, typing.Type[converters.MolterConverter]
-    ] = attrs.field(factory=dict, converter=_merge_converters)
+    ] = attrs.field(factory=dict, converter=_merge_converters, repr=False)
 
     def __attrs_post_init__(self) -> None:
         # doing this here just so we don't run into any issues here with a value

@@ -7,6 +7,7 @@ import typing
 import interactions
 from . import utils
 from .command import MolterCommand
+from .context import HybridContext
 from .context import MolterContext
 from .converters import MolterConverter
 from interactions import ext
@@ -68,9 +69,11 @@ class MolterExtension(interactions.Extension):
         self.client = typing.cast(MolterInjectedClient, self.client)
 
         for _, cmd in inspect.getmembers(
-            self, predicate=lambda x: isinstance(x, MolterCommand)
+            self,
+            predicate=lambda x: isinstance(x, MolterCommand)
+            or hasattr(x, "__molter_command__"),
         ):
-            cmd: MolterCommand
+            cmd: MolterCommand = getattr(cmd, "__molter_command__", None) or cmd
             cmd.extension = self
             cmd.callback = functools.partial(cmd.callback, self)
 
@@ -338,6 +341,28 @@ class Molter:
             guild=guild,
         )
 
+    def _standard_to_hybrid(self, ctx: MolterContext) -> HybridContext:
+        """
+        Creates a `HybridContext` object from `MolterContext`.
+
+        Args:
+            ctx (`MolterContext`): The context to create a hybrid context from.
+
+        Returns:
+            `HybridContext`: The context generated.
+        """
+        new_ctx = HybridContext(  # type: ignore
+            client=ctx.client,
+            message=ctx.message,
+            user=ctx.author,  # type: ignore
+            member=ctx.member,
+            channel=ctx.channel,
+            guild=ctx.guild,
+        )
+        new_ctx.prefix = ctx.prefix
+        new_ctx.content_parameters = ctx.content_parameters
+        return new_ctx
+
     async def _handle_prefixed_commands(self, msg: interactions.Message):
         """
         Determines if a command is being triggered and dispatch it.
@@ -393,6 +418,9 @@ class Molter:
                 command = None
 
             if command and command.enabled:
+                if command.hybrid:
+                    context = self._standard_to_hybrid(context)
+
                 # this looks ugly, ik
                 context.invoked_name = utils.remove_suffix(
                     utils.remove_prefix(msg.content, prefix_used),
