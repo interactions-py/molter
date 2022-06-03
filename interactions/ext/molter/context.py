@@ -482,6 +482,20 @@ class HybridContext(MolterContext):
             self.guild = await self.message.get_guild()  # type: ignore
         return self.guild
 
+    async def defer(self, ephemeral: bool = False):
+        """
+        Either defers the interaction (if present) or simply triggers a
+        typing indicator in the channel for 10 seconds.
+
+        Args:
+            ephemeral (`bool`, optional): Whether the response is hidden or not.
+            This property is ignored for prefixed commands.
+        """
+        if self.interaction:
+            return await self.interaction.defer(ephemeral)
+
+        await self._http.trigger_typing(int(self.channel_id))
+
     async def send(
         self,
         content: typing.Optional[str] = interactions.MISSING,  # type: ignore
