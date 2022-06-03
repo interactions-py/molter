@@ -63,10 +63,14 @@ class MolterContext:
     """Extras used for this context. These can contain your own custom data."""
 
     _guild_permissions: _typing.Optional[interactions.Permissions] = attrs.field(
-        init=False, default=None
+        init=False,
+        default=None,
+        repr=False,
     )
     _channel_permissions: _typing.Optional[interactions.Permissions] = attrs.field(
-        init=False, default=None
+        init=False,
+        default=None,
+        repr=False,
     )
 
     def __attrs_post_init__(self) -> None:

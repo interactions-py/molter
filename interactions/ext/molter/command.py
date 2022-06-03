@@ -465,7 +465,7 @@ class MolterCommand:
     ] = attrs.field(factory=list)
     """A list of checks for this command."""
 
-    _usage: typing.Optional[str] = attrs.field(default=None)
+    _usage: typing.Optional[str] = attrs.field(default=None, repr=False)
     _type_to_converter: typing.Dict[
         type, typing.Type[converters.MolterConverter]
     ] = attrs.field(factory=dict, converter=_merge_converters, repr=False)
