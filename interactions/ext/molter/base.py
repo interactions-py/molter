@@ -3,6 +3,7 @@ import inspect
 import logging
 import traceback
 import typing
+from copy import deepcopy
 
 import interactions
 from . import utils
@@ -10,7 +11,9 @@ from .command import MolterCommand
 from .context import HybridContext
 from .context import MolterContext
 from .converters import MolterConverter
+from .hybrid import _molter_from_slash
 from interactions import ext
+from interactions.client.decor import command as slash_command
 
 __all__ = (
     "__version__",
@@ -272,6 +275,73 @@ class Molter:
 
     prefix_command = prefixed_command
     text_based_command = prefixed_command
+
+    @functools.wraps(slash_command)
+    def hybrid_slash(
+        self,
+        *,
+        name: typing.Optional[str] = interactions.MISSING,  # type: ignore
+        description: typing.Optional[str] = interactions.MISSING,  # type: ignore
+        scope: typing.Optional[
+            typing.Union[
+                int,
+                interactions.Guild,
+                typing.List[int],
+                typing.List[interactions.Guild],
+            ]
+        ] = interactions.MISSING,  # type: ignore
+        options: typing.Optional[
+            typing.Union[
+                typing.Dict[str, typing.Any],
+                typing.List[typing.Dict[str, typing.Any]],
+                interactions.Option,
+                typing.List[interactions.Option],
+            ]
+        ] = interactions.MISSING,  # type: ignore
+        name_localizations: typing.Optional[
+            typing.Dict[typing.Union[str, interactions.Locale], str]
+        ] = interactions.MISSING,  # type: ignore
+        description_localizations: typing.Optional[
+            typing.Dict[typing.Union[str, interactions.Locale], str]
+        ] = interactions.MISSING,  # type: ignore
+        default_member_permissions: typing.Optional[
+            typing.Union[int, interactions.Permissions]
+        ] = interactions.MISSING,  # type: ignore
+        dm_permission: typing.Optional[bool] = interactions.MISSING,  # type: ignore
+    ):
+        """
+        A decorator for creating hybrid commands based off a normal slash command.
+        Uses all normal slash command arguments (besides for type), but also makes
+        a prefixed command when used in conjunction with `MolterExtension`.
+
+        Remember to use `HybridContext` as the context for proper type hinting.
+        Subcommand options do not work with this decorator right now.
+        """
+        kwargs = locals()
+        del kwargs["self"]
+
+        def decorator(coro):
+            coro_copy = deepcopy(coro)
+            molt_cmd = _molter_from_slash(coro_copy, **kwargs)
+            self.add_prefixed_command(molt_cmd)
+
+            async def wrapped_command(
+                ctx: interactions.CommandContext, *args, **kwargs
+            ):
+                new_ctx = HybridContext(
+                    message=ctx.message,
+                    user=ctx.user,
+                    member=ctx.member,
+                    channel=ctx.channel,
+                    guild=ctx.guild,
+                    prefix="/",
+                    interaction=ctx,
+                )
+                await coro(new_ctx, *args, **kwargs)
+
+            return self.client.command(**kwargs)(wrapped_command)
+
+        return decorator
 
     async def generate_prefixes(
         self, client: interactions.Client, msg: interactions.Message

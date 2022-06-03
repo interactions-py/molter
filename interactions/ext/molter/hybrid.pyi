@@ -1,6 +1,12 @@
 import typing
 import interactions
 
+from .command import MolterCommand
+
+__all__ = ("extension_hybrid_slash",)
+
+# necessary to use for other places in the codebase
+def _molter_from_slash(coro_copy: typing.Callable, **kwargs) -> MolterCommand: ...
 def extension_hybrid_slash(
     *,
     name: typing.Optional[str] = None,

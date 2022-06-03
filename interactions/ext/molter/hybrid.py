@@ -155,6 +155,17 @@ def _molter_from_slash(coro_copy: typing.Callable, **kwargs):
 
         _options: typing.List[typing.Dict]
 
+        num_params = len(inspect.signature(coro_copy).parameters.values())
+
+        boilerplate_params = 2 if "." in coro_copy.__qualname__ else 1
+        if num_params - boilerplate_params != len(_options):
+            raise ValueError(
+                "The number of parameters in this function does not match the number of"
+                " options specified. Please refrain from using variables like **kwargs,"
+                " as Molter cannot translate slash commands to Molter commands"
+                " otherwise."
+            )
+
         for _option in _options:
             option = interactions.Option(**_option)
 
@@ -252,6 +263,7 @@ def extension_hybrid_slash(*args, **kwargs):
     a prefixed command when used in conjunction with `MolterExtension`.
 
     Remember to use `HybridContext` as the context for proper type hinting.
+    Subcommand options do not work with this decorator right now.
     """
 
     def decorator(coro):
