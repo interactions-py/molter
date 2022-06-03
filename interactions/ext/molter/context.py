@@ -1,10 +1,11 @@
-import typing
+import typing as _typing
 
 import attrs
 
 import interactions
+from . import utils
 
-if typing.TYPE_CHECKING:
+if _typing.TYPE_CHECKING:
     from .command import MolterCommand
     from .base import MolterInjectedClient
 
@@ -33,14 +34,14 @@ class MolterContext:
     """The message this represents."""
     user: interactions.User = attrs.field()
     """The user who sent the message."""
-    member: typing.Optional[interactions.Member] = attrs.field(default=None)
+    member: _typing.Optional[interactions.Member] = attrs.field(default=None)
     """The guild member who sent the message, if applicable."""
 
-    channel: typing.Optional[interactions.Channel] = attrs.field(default=None)
+    channel: _typing.Optional[interactions.Channel] = attrs.field(default=None)
     """The channel this message was sent through, if applicable.
     Will be `None` if `Molter.fetch_data_for_context` is False
     unless `MolterContext.get_channel` is used."""
-    guild: typing.Optional[interactions.Guild] = attrs.field(default=None)
+    guild: _typing.Optional[interactions.Guild] = attrs.field(default=None)
     """The guild this message was sent through, if applicable.
     Will be `None` if `Molter.fetch_data_for_context` is False
     unless `MolterContext.get_guild` is used."""
@@ -51,20 +52,20 @@ class MolterContext:
     """The message content without the prefix or command."""
     command: "MolterCommand" = attrs.field(init=False, default=None)
     """The command invoked."""
-    args: typing.List[str] = attrs.field(init=False, factory=list)
+    args: _typing.List[str] = attrs.field(init=False, factory=list)
     """The arguments of the command (as a list of strings)."""
     prefix: str = attrs.field(default=None)
     """The prefix used for this command."""
 
-    extras: typing.Dict[typing.Any, typing.Any] = attrs.field(
+    extras: _typing.Dict[_typing.Any, _typing.Any] = attrs.field(
         init=False, factory=dict, repr=False
     )
     """Extras used for this context. These can contain your own custom data."""
 
-    _guild_permissions: typing.Optional[interactions.Permissions] = attrs.field(
+    _guild_permissions: _typing.Optional[interactions.Permissions] = attrs.field(
         init=False, default=None
     )
-    _channel_permissions: typing.Optional[interactions.Permissions] = attrs.field(
+    _channel_permissions: _typing.Optional[interactions.Permissions] = attrs.field(
         init=False, default=None
     )
 
@@ -89,7 +90,7 @@ class MolterContext:
             self.member.user = self.user
 
     @property
-    def author(self) -> typing.Union[interactions.Member, interactions.User]:
+    def author(self) -> _typing.Union[interactions.Member, interactions.User]:
         """
         Either the member or user who sent the message. Prefers member,
         but defaults to user if the member does not exist.
@@ -113,7 +114,7 @@ class MolterContext:
         return self.message.channel_id  # type: ignore
 
     @property
-    def guild_id(self) -> typing.Optional[interactions.Snowflake]:
+    def guild_id(self) -> _typing.Optional[interactions.Snowflake]:
         """Returns the guild ID where the message was sent, if applicable."""
         return self.message.guild_id
 
@@ -130,7 +131,7 @@ class MolterContext:
         self.channel = await self.message.get_channel()
         return self.channel
 
-    async def get_guild(self) -> typing.Optional[interactions.Guild]:
+    async def get_guild(self) -> _typing.Optional[interactions.Guild]:
         """Gets the guild where the message was sent, if applicable."""
         if self.guild:
             return self.guild
@@ -270,6 +271,20 @@ class MolterContext:
         base_permissions = await self.compute_guild_permissions()
         return await self._compute_overwrites(base_permissions)
 
+    def typing(self) -> utils.Typing:
+        """
+        A context manager to send a typing state to a given channel
+        as long as long as the wrapped operation takes.
+
+        Usage:
+
+        ```python
+        async with ctx.typing():
+            # do stuff here
+        ```
+        """
+        return utils.Typing(self._http, int(self.channel_id))
+
     def _get_channel_for_send(self) -> interactions.Channel:
         """
         Gets the channel to send a message for.
@@ -286,26 +301,26 @@ class MolterContext:
 
     async def send(
         self,
-        content: typing.Optional[str] = interactions.MISSING,  # type: ignore
+        content: _typing.Optional[str] = interactions.MISSING,  # type: ignore
         *,
-        tts: typing.Optional[bool] = interactions.MISSING,  # type: ignore
-        files: typing.Optional[
-            typing.Union[interactions.File, typing.List[interactions.File]]
+        tts: _typing.Optional[bool] = interactions.MISSING,  # type: ignore
+        files: _typing.Optional[
+            _typing.Union[interactions.File, _typing.List[interactions.File]]
         ] = interactions.MISSING,  # type: ignore
-        embeds: typing.Optional[
-            typing.Union["interactions.Embed", typing.List["interactions.Embed"]]
+        embeds: _typing.Optional[
+            _typing.Union["interactions.Embed", _typing.List["interactions.Embed"]]
         ] = interactions.MISSING,  # type: ignore
-        allowed_mentions: typing.Optional[
+        allowed_mentions: _typing.Optional[
             "interactions.MessageInteraction"
         ] = interactions.MISSING,  # type: ignore
-        components: typing.Optional[
-            typing.Union[
+        components: _typing.Optional[
+            _typing.Union[
                 "interactions.ActionRow",
                 "interactions.Button",
                 "interactions.SelectMenu",
-                typing.List["interactions.ActionRow"],
-                typing.List["interactions.Button"],
-                typing.List["interactions.SelectMenu"],
+                _typing.List["interactions.ActionRow"],
+                _typing.List["interactions.Button"],
+                _typing.List["interactions.SelectMenu"],
             ]
         ] = interactions.MISSING,  # type: ignore
         **kwargs,
@@ -351,26 +366,26 @@ class MolterContext:
 
     async def reply(
         self,
-        content: typing.Optional[str] = interactions.MISSING,  # type: ignore
+        content: _typing.Optional[str] = interactions.MISSING,  # type: ignore
         *,
-        tts: typing.Optional[bool] = interactions.MISSING,  # type: ignore
-        files: typing.Optional[
-            typing.Union[interactions.File, typing.List[interactions.File]]
+        tts: _typing.Optional[bool] = interactions.MISSING,  # type: ignore
+        files: _typing.Optional[
+            _typing.Union[interactions.File, _typing.List[interactions.File]]
         ] = interactions.MISSING,  # type: ignore
-        embeds: typing.Optional[
-            typing.Union["interactions.Embed", typing.List["interactions.Embed"]]
+        embeds: _typing.Optional[
+            _typing.Union["interactions.Embed", _typing.List["interactions.Embed"]]
         ] = interactions.MISSING,  # type: ignore
-        allowed_mentions: typing.Optional[
+        allowed_mentions: _typing.Optional[
             "interactions.MessageInteraction"
         ] = interactions.MISSING,  # type: ignore
-        components: typing.Optional[
-            typing.Union[
+        components: _typing.Optional[
+            _typing.Union[
                 "interactions.ActionRow",
                 "interactions.Button",
                 "interactions.SelectMenu",
-                typing.List["interactions.ActionRow"],
-                typing.List["interactions.Button"],
-                typing.List["interactions.SelectMenu"],
+                _typing.List["interactions.ActionRow"],
+                _typing.List["interactions.Button"],
+                _typing.List["interactions.SelectMenu"],
             ]
         ] = interactions.MISSING,  # type: ignore
         **kwargs,
@@ -421,12 +436,12 @@ class HybridContext(MolterContext):
     This tries to handle the differences between slash and prefixed commands seemlessly.
     """
 
-    client: "typing.Optional[MolterInjectedClient]" = attrs.field(default=None)
+    client: "_typing.Optional[MolterInjectedClient]" = attrs.field(default=None)
     """The bot instance. This will not appear for slash command versions."""
-    message: typing.Optional[interactions.Message] = attrs.field(default=None)
+    message: _typing.Optional[interactions.Message] = attrs.field(default=None)
     """The message this represents."""
 
-    interaction: typing.Optional[interactions.CommandContext] = attrs.field(
+    interaction: _typing.Optional[interactions.CommandContext] = attrs.field(
         default=None
     )
     """The interaction context, if this is for the slash command version."""
@@ -438,7 +453,7 @@ class HybridContext(MolterContext):
         return super().__attrs_post_init__()
 
     @property
-    def bot(self) -> "typing.Optional[MolterInjectedClient]":
+    def bot(self) -> "_typing.Optional[MolterInjectedClient]":
         """An alias to `MolterContext.client`."""
         return self.client
 
@@ -448,7 +463,7 @@ class HybridContext(MolterContext):
         return self.interaction.channel_id if self.interaction else self.message.channel_id  # type: ignore
 
     @property
-    def guild_id(self) -> typing.Optional[interactions.Snowflake]:
+    def guild_id(self) -> _typing.Optional[interactions.Snowflake]:
         """Returns the guild ID where the message was sent, if applicable."""
         return self.interaction.guild_id if self.interaction else self.message.guild_id  # type: ignore
 
@@ -468,7 +483,7 @@ class HybridContext(MolterContext):
             self.channel = await self.message.get_channel()  # type: ignore
         return self.channel
 
-    async def get_guild(self) -> typing.Optional[interactions.Guild]:
+    async def get_guild(self) -> _typing.Optional[interactions.Guild]:
         """Gets the guild where the message was sent, if applicable."""
         if self.guild:
             return self.guild
@@ -482,10 +497,34 @@ class HybridContext(MolterContext):
             self.guild = await self.message.get_guild()  # type: ignore
         return self.guild
 
+    def typing(
+        self, ephemeral: bool = False
+    ) -> _typing.Union[utils.Typing, utils.DeferredTyping]:
+        """
+        Either a dummy context manage to simply defer an interaction, if
+        there is one, or a context manager to send a typing state to a
+        given channel as long as long as the wrapped operation takes.
+
+        Usage:
+
+        ```python
+        async with ctx.typing():
+            # do stuff here
+        ```
+
+        Args:
+            ephemeral (`bool`, optional): Whether the response is hidden or not.
+            This property is ignored for prefixed commands.
+        """
+        if self.interaction:
+            return utils.DeferredTyping(self.interaction, ephemeral)
+
+        return utils.Typing(self._http, int(self.channel_id))
+
     async def defer(self, ephemeral: bool = False):
         """
         Either defers the interaction (if present) or simply triggers a
-        typing indicator in the channel for 10 seconds.
+        _typing indicator in the channel for 10 seconds.
 
         Args:
             ephemeral (`bool`, optional): Whether the response is hidden or not.
@@ -494,30 +533,30 @@ class HybridContext(MolterContext):
         if self.interaction:
             return await self.interaction.defer(ephemeral)
 
-        await self._http.trigger_typing(int(self.channel_id))
+        await self._http.trigger__typing(int(self.channel_id))
 
     async def send(
         self,
-        content: typing.Optional[str] = interactions.MISSING,  # type: ignore
+        content: _typing.Optional[str] = interactions.MISSING,  # type: ignore
         *,
-        tts: typing.Optional[bool] = interactions.MISSING,  # type: ignore
-        files: typing.Optional[
-            typing.Union[interactions.File, typing.List[interactions.File]]
+        tts: _typing.Optional[bool] = interactions.MISSING,  # type: ignore
+        files: _typing.Optional[
+            _typing.Union[interactions.File, _typing.List[interactions.File]]
         ] = interactions.MISSING,  # type: ignore
-        embeds: typing.Optional[
-            typing.Union["interactions.Embed", typing.List["interactions.Embed"]]
+        embeds: _typing.Optional[
+            _typing.Union["interactions.Embed", _typing.List["interactions.Embed"]]
         ] = interactions.MISSING,  # type: ignore
-        allowed_mentions: typing.Optional[
+        allowed_mentions: _typing.Optional[
             "interactions.MessageInteraction"
         ] = interactions.MISSING,  # type: ignore
-        components: typing.Optional[
-            typing.Union[
+        components: _typing.Optional[
+            _typing.Union[
                 "interactions.ActionRow",
                 "interactions.Button",
                 "interactions.SelectMenu",
-                typing.List["interactions.ActionRow"],
-                typing.List["interactions.Button"],
-                typing.List["interactions.SelectMenu"],
+                _typing.List["interactions.ActionRow"],
+                _typing.List["interactions.Button"],
+                _typing.List["interactions.SelectMenu"],
             ]
         ] = interactions.MISSING,  # type: ignore
         ephemeral: bool = False,
@@ -580,26 +619,26 @@ class HybridContext(MolterContext):
 
     async def reply(
         self,
-        content: typing.Optional[str] = interactions.MISSING,  # type: ignore
+        content: _typing.Optional[str] = interactions.MISSING,  # type: ignore
         *,
-        tts: typing.Optional[bool] = interactions.MISSING,  # type: ignore
-        files: typing.Optional[
-            typing.Union[interactions.File, typing.List[interactions.File]]
+        tts: _typing.Optional[bool] = interactions.MISSING,  # type: ignore
+        files: _typing.Optional[
+            _typing.Union[interactions.File, _typing.List[interactions.File]]
         ] = interactions.MISSING,  # type: ignore
-        embeds: typing.Optional[
-            typing.Union["interactions.Embed", typing.List["interactions.Embed"]]
+        embeds: _typing.Optional[
+            _typing.Union["interactions.Embed", _typing.List["interactions.Embed"]]
         ] = interactions.MISSING,  # type: ignore
-        allowed_mentions: typing.Optional[
+        allowed_mentions: _typing.Optional[
             "interactions.MessageInteraction"
         ] = interactions.MISSING,  # type: ignore
-        components: typing.Optional[
-            typing.Union[
+        components: _typing.Optional[
+            _typing.Union[
                 "interactions.ActionRow",
                 "interactions.Button",
                 "interactions.SelectMenu",
-                typing.List["interactions.ActionRow"],
-                typing.List["interactions.Button"],
-                typing.List["interactions.SelectMenu"],
+                _typing.List["interactions.ActionRow"],
+                _typing.List["interactions.Button"],
+                _typing.List["interactions.SelectMenu"],
             ]
         ] = interactions.MISSING,  # type: ignore
         ephemeral: bool = False,

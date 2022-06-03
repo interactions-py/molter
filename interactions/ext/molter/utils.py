@@ -1,3 +1,4 @@
+import asyncio
 import inspect
 import re
 import typing
@@ -17,6 +18,8 @@ __all__ = (
     "get_args_from_str",
     "get_first_word",
     "escape_mentions",
+    "Typing",
+    "DeferredTyping",
 )
 
 # most of these come from naff
@@ -164,3 +167,59 @@ def escape_mentions(content: str) -> str:
         The escaped string.
     """
     return MENTION_REGEX.sub("@\u200b\\1", content)
+
+
+class Typing:
+    """
+    A context manager to send a typing state to a given channel
+    as long as long as the wrapped operation takes.
+
+    Args:
+        http (`interactions.HTTPClient`): The HTTP client to use.
+        channel_id (`int`): The ID of the channel to send the typing state to.
+    """
+
+    __slots__ = ("_http", "channel_id", "_stop", "task")
+
+    def __init__(self, http: interactions.HTTPClient, channel_id: int) -> None:
+        self._http = http
+        self.channel_id = channel_id
+
+        self._stop: bool = False
+        self.task = None
+
+    async def _typing_task(self) -> None:
+        while not self._stop:
+            await self._http.trigger_typing(self.channel_id)
+            await asyncio.sleep(5)
+
+    async def __aenter__(self) -> None:
+        self.task = asyncio.create_task(self._typing_task())
+
+    async def __aexit__(self, *_) -> None:
+        self._stop = True
+        self.task.cancel()  # type: ignore
+
+
+class DeferredTyping:
+    """
+    A dummy context manager to defer an interaction and then do nothing.
+
+    Args:
+        interaction (`interactions.CommandContext`): The interaction to defer.
+        ephemeral (`bool`, optional) Whether the response is hidden or not.
+    """
+
+    __slots__ = ("interaction", "ephemeral")
+
+    def __init__(
+        self, interaction: interactions.CommandContext, ephemeral: bool = False
+    ) -> None:
+        self.interaction = interaction
+        self.ephemeral = ephemeral
+
+    async def __aenter__(self) -> None:
+        await self.interaction.defer(self.ephemeral)
+
+    async def __aexit__(self, *_) -> None:
+        pass
