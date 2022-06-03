@@ -52,8 +52,8 @@ class MolterContext:
     """The message content without the prefix or command."""
     command: "MolterCommand" = attrs.field(init=False, default=None)
     """The command invoked."""
-    args: _typing.List[str] = attrs.field(init=False, factory=list)
-    """The arguments of the command (as a list of strings)."""
+    args: _typing.List[_typing.Any] = attrs.field(init=False, factory=list)
+    """The arguments used for this command."""
     prefix: str = attrs.field(default=None)
     """The prefix used for this command."""
 

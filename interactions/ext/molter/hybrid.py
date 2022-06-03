@@ -283,6 +283,7 @@ def extension_hybrid_slash(*args, **kwargs):
                 prefix="/",
                 interaction=ctx,
             )
+            new_ctx.args = list(args) + list(kwargs.values())
             await coro(self, new_ctx, *args, **kwargs)
 
         wrapped_command.__molter_command__ = molt_cmd

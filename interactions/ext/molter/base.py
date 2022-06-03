@@ -337,6 +337,7 @@ class Molter:
                     prefix="/",
                     interaction=ctx,
                 )
+                new_ctx.args = list(args) + list(kwargs.values())
                 await coro(new_ctx, *args, **kwargs)
 
             return self.client.command(**kwargs)(wrapped_command)
