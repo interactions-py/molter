@@ -533,7 +533,7 @@ class HybridContext(MolterContext):
         if self.interaction:
             return await self.interaction.defer(ephemeral)
 
-        await self._http.trigger__typing(int(self.channel_id))
+        await self._http.trigger_typing(int(self.channel_id))
 
     async def send(
         self,
