@@ -133,7 +133,7 @@ def _molter_from_slash(coro_copy: typing.Callable, **kwargs):
         if cmd_type not in {1, interactions.ApplicationCommandType.CHAT_INPUT}:
             raise ValueError("Hybrid commands only support slash commands.")
 
-    if (options := kwargs.get("options")) and options is not interactions.MISSING:
+    if (options := kwargs.get("options")) and options is not interactions.MISSING:  # type: ignore
         options: typing.Union[
             typing.Dict[str, typing.Any],
             typing.List[typing.Dict[str, typing.Any]],
@@ -141,17 +141,17 @@ def _molter_from_slash(coro_copy: typing.Callable, **kwargs):
             typing.List[interactions.Option],
         ]
 
-        if all(isinstance(option, interactions.Option) for option in options):
-            _options = [option._json for option in options]
+        if all(isinstance(option, interactions.Option) for option in options):  # type: ignore
+            _options = [option._json for option in options]  # type: ignore
         elif all(
             isinstance(option, dict) and all(isinstance(value, str) for value in option)
-            for option in options
+            for option in options  # type: ignore
         ):
-            _options = list(options)
+            _options = list(options)  # type: ignore
         elif isinstance(options, interactions.Option):
             _options = [options._json]
         else:
-            _options = [options]
+            _options = [options]  # type: ignore
 
         _options: typing.List[typing.Dict]
 
@@ -197,7 +197,7 @@ def _molter_from_slash(coro_copy: typing.Callable, **kwargs):
 
     name: str = (
         kwargs.get("name")
-        if (name := kwargs.get("name")) and name is not interactions.MISSING
+        if (name := kwargs.get("name")) and name is not interactions.MISSING  # type: ignore
         else coro_copy.__name__  # type: ignore
     )
 
@@ -227,7 +227,7 @@ def _molter_from_slash(coro_copy: typing.Callable, **kwargs):
 
         if isinstance(scope, list):
             if all(isinstance(guild, interactions.Guild) for guild in scope):
-                [_scopes.append(int(guild.id)) for guild in scope]
+                [_scopes.append(int(guild.id)) for guild in scope]  # type: ignore
             elif all(isinstance(guild, int) for guild in scope):
                 [_scopes.append(guild) for guild in scope]
         elif isinstance(scope, interactions.Guild):

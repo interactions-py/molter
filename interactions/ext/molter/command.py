@@ -313,7 +313,7 @@ def _get_params(
             ):
                 cmd_param.no_argument = True
 
-            converter = _get_converter(anno, name, type_to_converter)
+            converter = _get_converter(anno, name, type_to_converter)  # type: ignore
             cmd_param.converters.append(converter)
 
         if param.kind == param.KEYWORD_ONLY:

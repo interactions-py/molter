@@ -470,7 +470,7 @@ class HybridContext(MolterContext):
     @property
     def _http(self) -> interactions.HTTPClient:
         """Returns the HTTP client the client has."""
-        return self.interaction.client if self.interaction else self.client._http
+        return self.interaction.client if self.interaction else self.client._http  # type: ignore
 
     async def get_channel(self) -> interactions.Channel:
         """Gets the channel where the message was sent."""
@@ -687,7 +687,7 @@ class HybridContext(MolterContext):
                 **kwargs,
             )
 
-        return await self.message.reply(
+        return await self.message.reply(  # type: ignore
             content,
             tts=tts,
             files=files,

@@ -295,7 +295,7 @@ class MessageConverter(MolterConverter[interactions.Message]):
         guild_id = str(guild_id) if guild_id != "@me" else None
 
         try:
-            message_data: dict = await ctx._http.get_message(channel_id, message_id)
+            message_data: dict = await ctx._http.get_message(channel_id, message_id)  # type: ignore
 
             msg_guild_id: typing.Optional[str] = message_data.get("guild_id")
             if not msg_guild_id:
