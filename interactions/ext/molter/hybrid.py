@@ -126,6 +126,124 @@ class _NarrowedChannelConverter(converters.ChannelConverter):
         return channel
 
 
+def _molter_from_slash(coro_copy: typing.Callable, **kwargs):
+    # welcome to hell.
+
+    if cmd_type := kwargs.get("type"):
+        if cmd_type not in {1, interactions.ApplicationCommandType.CHAT_INPUT}:
+            raise ValueError("Hybrid commands only support slash commands.")
+
+    if (options := kwargs.get("options")) and options is not interactions.MISSING:
+        options: typing.Union[
+            typing.Dict[str, typing.Any],
+            typing.List[typing.Dict[str, typing.Any]],
+            interactions.Option,
+            typing.List[interactions.Option],
+        ]
+
+        if all(isinstance(option, interactions.Option) for option in options):
+            _options = [option._json for option in options]
+        elif all(
+            isinstance(option, dict) and all(isinstance(value, str) for value in option)
+            for option in options
+        ):
+            _options = list(options)
+        elif isinstance(options, interactions.Option):
+            _options = [options._json]
+        else:
+            _options = [options]
+
+        _options: typing.List[typing.Dict]
+
+        for _option in _options:
+            option = interactions.Option(**_option)
+
+            annotation = _match_option_type(option.type.value)
+
+            if annotation in {str, int, float} and option.choices:
+                if any(c.name != c.value for c in option.choices):
+                    raise ValueError(
+                        "Hybrid commands do not support choices that have a"
+                        " different value compared to its name."
+                    )
+
+                annotation = converters._LiteralConverter(
+                    tuple(c.name for c in option.choices)
+                )
+            elif annotation in {int, float} and (
+                option.min_value is not None or option.max_value is not None
+            ):
+                annotation = _RangeConverter(
+                    annotation, option.min_value, option.max_value
+                )
+            elif annotation == interactions.Channel and option.channel_types:
+                annotation = _NarrowedChannelConverter(option.channel_types)
+
+            if not option.required:
+                annotation = typing.Optional[annotation]  # type: ignore
+
+            coro_copy.__annotations__[option.name] = annotation
+
+    name: str = (
+        kwargs.get("name")
+        if (name := kwargs.get("name")) and name is not interactions.MISSING
+        else coro_copy.__name__  # type: ignore
+    )
+
+    description = (
+        kwargs.get("description")
+        if (description := kwargs.get("description"))
+        and description is not interactions.MISSING
+        else None
+    )
+
+    molt_cmd = MolterCommand(  # type: ignore
+        callback=coro_copy,
+        name=name,
+        help=description,
+        brief=None,
+    )
+
+    if (scope := kwargs.get("scope")) and scope is not interactions.MISSING:  # type: ignore
+        scope: typing.Union[
+            int,
+            interactions.Guild,
+            typing.List[int],
+            typing.List[interactions.Guild],
+        ]
+
+        _scopes = []
+
+        if isinstance(scope, list):
+            if all(isinstance(guild, interactions.Guild) for guild in scope):
+                [_scopes.append(int(guild.id)) for guild in scope]
+            elif all(isinstance(guild, int) for guild in scope):
+                [_scopes.append(guild) for guild in scope]
+        elif isinstance(scope, interactions.Guild):
+            _scopes.append(int(scope.id))
+        else:
+            _scopes.append(scope)
+
+        molt_cmd.checks.append(_generate_scope_check(_scopes))  # type: ignore
+
+    if (
+        default_member_permissions := kwargs.get("default_member_permissions")  # type: ignore
+    ) and default_member_permissions is not interactions.MISSING:
+        default_member_permissions: typing.Union[int, interactions.Permissions]
+
+        if isinstance(default_member_permissions, interactions.Permissions):
+            default_member_permissions = default_member_permissions.value
+
+        molt_cmd.checks.append(
+            _generate_permission_check(default_member_permissions)  # type: ignore
+        )
+
+    if kwargs.get("dm_permissions") is False:
+        molt_cmd.checks.append(_guild_check)  # type: ignore
+
+    return molt_cmd
+
+
 @wraps(slash_command)
 def extension_hybrid_slash(*args, **kwargs):
     """
@@ -134,130 +252,12 @@ def extension_hybrid_slash(*args, **kwargs):
     a prefixed command when used in conjunction with `MolterExtension`.
 
     Remember to use `HybridContext` as the context for proper type hinting.
-
-    This only works in extensions due to the complexity needed to make it
-    possible in the first place.
     """
 
-    if cmd_type := kwargs.get("type"):
-        if cmd_type != 1 and cmd_type != interactions.ApplicationCommandType.CHAT_INPUT:
-            raise ValueError("Hybrid commands only support slash commands.")
-
     def decorator(coro):
-        # welcome to hell.
-
         # we're about to do some evil things, let's not destroy everything
         coro_copy = deepcopy(coro)
-
-        if (options := kwargs.get("options")) and options is not interactions.MISSING:
-            options: typing.Union[
-                typing.Dict[str, typing.Any],
-                typing.List[typing.Dict[str, typing.Any]],
-                interactions.Option,
-                typing.List[interactions.Option],
-            ]
-
-            if all(isinstance(option, interactions.Option) for option in options):
-                _options = [option._json for option in options]
-            elif all(
-                isinstance(option, dict)
-                and all(isinstance(value, str) for value in option)
-                for option in options
-            ):
-                _options = list(options)
-            elif isinstance(options, interactions.Option):
-                _options = [options._json]
-            else:
-                _options = [options]
-
-            _options: typing.List[typing.Dict]
-
-            for _option in _options:
-                option = interactions.Option(**_option)
-
-                annotation = _match_option_type(option.type.value)
-
-                if annotation in {str, int, float} and option.choices:
-                    if not all((c.name == c.value for c in option.choices)):
-                        raise ValueError(
-                            "Hybrid commands do not support choices that have a"
-                            " different value compared to its name."
-                        )
-
-                    annotation = converters._LiteralConverter(
-                        tuple(c.name for c in option.choices)
-                    )
-                elif annotation in {int, float} and (
-                    option.min_value is not None or option.max_value is not None
-                ):
-                    annotation = _RangeConverter(
-                        annotation, option.min_value, option.max_value
-                    )
-                elif annotation == interactions.Channel and option.channel_types:
-                    annotation = _NarrowedChannelConverter(option.channel_types)
-
-                if not option.required:
-                    annotation = typing.Optional[annotation]  # type: ignore
-
-                coro_copy.__annotations__[option.name] = annotation
-
-        name = (
-            kwargs.get("name")
-            if (name := kwargs.get("name")) and name is not interactions.MISSING
-            else coro_copy.__name__
-        )
-
-        description = (
-            kwargs.get("description")
-            if (description := kwargs.get("description"))
-            and description is not interactions.MISSING
-            else None
-        )
-
-        molt_cmd = MolterCommand(  # type: ignore
-            callback=coro_copy,
-            name=name,
-            help=description,
-            brief=None,
-        )
-
-        if (scope := kwargs.get("scope")) and scope is not interactions.MISSING:  # type: ignore
-            scope: typing.Union[
-                int,
-                interactions.Guild,
-                typing.List[int],
-                typing.List[interactions.Guild],
-            ]
-
-            _scopes = []
-
-            if isinstance(scope, list):
-                if all(isinstance(guild, interactions.Guild) for guild in scope):
-                    [_scopes.append(int(guild.id)) for guild in scope]
-                elif all(isinstance(guild, int) for guild in scope):
-                    [_scopes.append(guild) for guild in scope]
-            else:
-                if isinstance(scope, interactions.Guild):
-                    _scopes.append(int(scope.id))
-                else:
-                    _scopes.append(scope)
-
-            molt_cmd.checks.append(_generate_scope_check(_scopes))  # type: ignore
-
-        if (
-            default_member_permissions := kwargs.get("default_member_permissions")  # type: ignore
-        ) and default_member_permissions is not interactions.MISSING:
-            default_member_permissions: typing.Union[int, interactions.Permissions]
-
-            if isinstance(default_member_permissions, interactions.Permissions):
-                default_member_permissions = default_member_permissions.value
-
-            molt_cmd.checks.append(
-                _generate_permission_check(default_member_permissions)  # type: ignore
-            )
-
-        if kwargs.get("dm_permissions") is False:
-            molt_cmd.checks.append(_guild_check)  # type: ignore
+        molt_cmd = _molter_from_slash(coro_copy, **kwargs)
 
         async def wrapped_command(
             self, ctx: interactions.CommandContext, *args, **kwargs

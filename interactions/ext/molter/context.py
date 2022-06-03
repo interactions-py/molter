@@ -422,7 +422,7 @@ class HybridContext(MolterContext):
     """
 
     client: "typing.Optional[MolterInjectedClient]" = attrs.field(default=None)
-    """The bot instance."""
+    """The bot instance. This will not appear for slash command versions."""
     message: typing.Optional[interactions.Message] = attrs.field(default=None)
     """The message this represents."""
 
