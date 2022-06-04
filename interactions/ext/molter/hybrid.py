@@ -4,18 +4,60 @@ from copy import deepcopy
 from functools import wraps
 
 import interactions
+from . import command
 from . import converters
 from . import errors
-from .command import MolterCommand
 from .context import HybridContext
+from .utils import _qualname_self_check
+from .utils import _qualname_wrap
 from interactions.client.decor import command as slash_command
 
 __all__ = ("extension_hybrid_slash",)
 
+# welcome to hell.
+# saying this code is messy is an understatement
+
+
+def _variable_to_options(
+    options: typing.Union[
+        typing.Dict[str, typing.Any],
+        typing.List[typing.Dict[str, typing.Any]],
+        interactions.Option,
+        typing.List[interactions.Option],
+    ]
+):
+    # even if its typehinted as Option, inter.py doesn't guarantee it is
+    if all(isinstance(option, interactions.Option) for option in options):  # type: ignore
+        _options = [option._json for option in options]  # type: ignore
+    elif all(
+        isinstance(option, dict) and all(isinstance(value, str) for value in option)
+        for option in options  # type: ignore
+    ):
+        _options = list(options)  # type: ignore
+    elif isinstance(options, interactions.Option):
+        _options = [options._json]
+    else:
+        _options = [options]  # type: ignore
+
+    _options: typing.List[typing.Dict]
+    return [interactions.Option(**option) for option in _options]
+
+
+def _variable_to_choices(choices):
+    # ditto, but with choices
+    if all(isinstance(choice, dict) for choice in choices):
+        _choices = [
+            choice if isinstance(choice, dict) else choice._json for choice in choices
+        ]
+    elif all(isinstance(choice, interactions.Choice) for choice in choices):
+        _choices = [choice._json for choice in choices]
+    else:
+        _choices = choices
+
+    return [interactions.Choice(**choice) for choice in _choices]
+
 
 def _match_option_type(option_type: int):
-    if option_type in {1, 2}:
-        raise ValueError("Hybrid commands do not support subcommand options right now.")
     if option_type == 3:
         return str
     if option_type == 4:
@@ -126,74 +168,150 @@ class _NarrowedChannelConverter(converters.ChannelConverter):
         return channel
 
 
-def _molter_from_slash(coro_copy: typing.Callable, **kwargs):
-    # welcome to hell.
+def _basic_subcommand_generator(name: str, description: str, group: bool = False):
+    async def _subcommand_base(ctx: HybridContext):
+        if group:
+            raise errors.BadArgument(
+                "Cannot run this base command without a subcommand."
+            )
+        else:
+            raise errors.BadArgument(
+                "Cannot run this subcommand group without a subcommand."
+            )
 
+    subcommand_base = command.MolterCommand(
+        callback=_subcommand_base,
+        name=name,
+        signature=inspect.Signature(None),  # type: ignore
+    )
+
+    return subcommand_base
+
+
+def _options_to_parameters(
+    options: typing.List[interactions.Option],
+    ori_parameters: typing.Dict[str, inspect.Parameter],
+):
+    new_parameters: typing.List[inspect.Parameter] = []
+
+    for option in options:
+        annotation = _match_option_type(option.type.value)
+
+        if annotation in {str, int, float} and option.choices:
+            actual_choices = _variable_to_choices(option.choices)
+
+            if any(c.name != c.value for c in actual_choices):
+                raise ValueError(
+                    "Hybrid commands do not support choices that have a"
+                    " different value compared to its name."
+                )
+
+            annotation = converters._LiteralConverter(
+                tuple(c.name for c in actual_choices)
+            )
+        elif annotation in {int, float} and (
+            option.min_value is not None or option.max_value is not None
+        ):
+            annotation = _RangeConverter(annotation, option.min_value, option.max_value)
+        elif annotation == interactions.Channel and option.channel_types:
+            annotation = _NarrowedChannelConverter(option.channel_types)
+
+        ori_param = ori_parameters[option.name]
+        new_parameters.append(
+            inspect.Parameter(
+                option.name,
+                ori_param.kind,
+                default=ori_param.default,
+                annotation=annotation,
+            )
+        )
+
+    return new_parameters
+
+
+def generate_subcommand_func(
+    coro_copy: typing.Callable, name: str, group_name: typing.Optional[str] = None
+):
+    if _qualname_self_check(coro_copy):
+
+        async def _subcommand_func(self, ctx: HybridContext, *args, **kwargs):  # type: ignore
+            if group_name:
+                return await coro_copy(self, ctx, group_name, name, *args, **kwargs)
+            else:
+                return await coro_copy(self, ctx, name, *args, **kwargs)
+
+    else:
+
+        async def _subcommand_func(ctx: HybridContext, *args, **kwargs):
+            if group_name:
+                return await coro_copy(ctx, group_name, name, *args, **kwargs)
+            else:
+                return await coro_copy(ctx, name, *args, **kwargs)
+
+    return _subcommand_func
+
+
+def _subcommand_to_molter(
+    base_name: str,
+    description: str,
+    options: typing.List[interactions.Option],
+    coro_copy: typing.Callable,
+    ori_parameters: typing.Dict[str, inspect.Parameter],
+    group_name: typing.Optional[str] = None,
+):
+    base_command = _basic_subcommand_generator(base_name, description)
+
+    for subcommand_option in options:
+
+        new_parameters = None
+        if subcommand_option.options:
+            params = _options_to_parameters(
+                _variable_to_options(subcommand_option.options), ori_parameters
+            )
+            new_parameters = inspect.Signature(params)
+
+        _sub_func = generate_subcommand_func(
+            coro_copy, subcommand_option.name, group_name
+        )
+
+        subcommand = command.MolterCommand(
+            callback=_sub_func,
+            name=subcommand_option.name,
+            help=subcommand_option.description,
+            signature=new_parameters,  # type: ignore
+        )
+        base_command.add_command(subcommand)
+
+    return base_command
+
+
+def _subcommand_group_to_molter(
+    base_name: str,
+    description: str,
+    options: typing.List[interactions.Option],
+    coro_copy: typing.Callable,
+    ori_parameters: typing.Dict[str, inspect.Parameter],
+):
+    base_command = _basic_subcommand_generator(base_name, description, group=True)
+
+    for subcommand_group_option in options:
+        subcommand = _subcommand_to_molter(
+            subcommand_group_option.name,
+            subcommand_group_option.description,
+            _variable_to_options(subcommand_group_option.options),  # type: ignore
+            coro_copy,
+            ori_parameters,
+            base_name,
+        )
+        base_command.add_command(subcommand)
+
+    return base_command
+
+
+def _molter_from_slash(coro_copy: typing.Callable, **kwargs):
     if cmd_type := kwargs.get("type"):
         if cmd_type not in {1, interactions.ApplicationCommandType.CHAT_INPUT}:
             raise ValueError("Hybrid commands only support slash commands.")
-
-    if (options := kwargs.get("options")) and options is not interactions.MISSING:  # type: ignore
-        options: typing.Union[
-            typing.Dict[str, typing.Any],
-            typing.List[typing.Dict[str, typing.Any]],
-            interactions.Option,
-            typing.List[interactions.Option],
-        ]
-
-        if all(isinstance(option, interactions.Option) for option in options):  # type: ignore
-            _options = [option._json for option in options]  # type: ignore
-        elif all(
-            isinstance(option, dict) and all(isinstance(value, str) for value in option)
-            for option in options  # type: ignore
-        ):
-            _options = list(options)  # type: ignore
-        elif isinstance(options, interactions.Option):
-            _options = [options._json]
-        else:
-            _options = [options]  # type: ignore
-
-        _options: typing.List[typing.Dict]
-
-        num_params = len(inspect.signature(coro_copy).parameters.values())
-
-        boilerplate_params = 2 if "." in coro_copy.__qualname__ else 1
-        if num_params - boilerplate_params != len(_options):
-            raise ValueError(
-                "The number of parameters in this function does not match the number of"
-                " options specified. Please refrain from using variables like **kwargs,"
-                " as Molter cannot translate slash commands to Molter commands"
-                " otherwise."
-            )
-
-        for _option in _options:
-            option = interactions.Option(**_option)
-
-            annotation = _match_option_type(option.type.value)
-
-            if annotation in {str, int, float} and option.choices:
-                if any(c.name != c.value for c in option.choices):
-                    raise ValueError(
-                        "Hybrid commands do not support choices that have a"
-                        " different value compared to its name."
-                    )
-
-                annotation = converters._LiteralConverter(
-                    tuple(c.name for c in option.choices)
-                )
-            elif annotation in {int, float} and (
-                option.min_value is not None or option.max_value is not None
-            ):
-                annotation = _RangeConverter(
-                    annotation, option.min_value, option.max_value
-                )
-            elif annotation == interactions.Channel and option.channel_types:
-                annotation = _NarrowedChannelConverter(option.channel_types)
-
-            if not option.required:
-                annotation = typing.Optional[annotation]  # type: ignore
-
-            coro_copy.__annotations__[option.name] = annotation
 
     name: str = (
         kwargs.get("name")
@@ -201,19 +319,51 @@ def _molter_from_slash(coro_copy: typing.Callable, **kwargs):
         else coro_copy.__name__  # type: ignore
     )
 
-    description = (
+    description: str = (
         kwargs.get("description")
-        if (description := kwargs.get("description"))
-        and description is not interactions.MISSING
+        if (description := kwargs.get("description"))  # type: ignore
+        and description is not interactions.MISSING  # type: ignore
         else None
-    )
+    )  # type: ignore
 
-    molt_cmd = MolterCommand(  # type: ignore
-        callback=coro_copy,
-        name=name,
-        help=description,
-        brief=None,
-    )
+    molt_cmd: typing.Optional[command.MolterCommand] = None
+
+    if (options := kwargs.get("options")) and options is not interactions.MISSING:  # type: ignore
+        options = _variable_to_options(options)
+
+        signature = inspect.signature(_qualname_wrap(coro_copy))
+        ori_parameters: typing.Dict[str, inspect.Parameter] = signature.parameters  # type: ignore
+
+        first_option = options[0]
+
+        if first_option.type.value in {1, 2} and first_option.options:
+            if first_option.type == interactions.OptionType.SUB_COMMAND:
+                molt_cmd = _subcommand_to_molter(
+                    name, description, options, coro_copy, ori_parameters
+                )
+
+            elif first_option.type == interactions.OptionType.SUB_COMMAND_GROUP:
+                molt_cmd = _subcommand_group_to_molter(
+                    name, description, options, coro_copy, ori_parameters
+                )
+
+        if not molt_cmd:
+            new_parameters = _options_to_parameters(options, ori_parameters)
+            new_signature = inspect.Signature(new_parameters)
+
+            molt_cmd = command.MolterCommand(
+                callback=coro_copy,
+                name=name,
+                help=description,
+                signature=new_signature,  # type: ignore
+            )
+    else:
+        molt_cmd = command.MolterCommand(
+            callback=coro_copy,
+            name=name,
+            help=description,
+            signature=inspect.Signature(None),  # type: ignore
+        )
 
     if (scope := kwargs.get("scope")) and scope is not interactions.MISSING:  # type: ignore
         scope: typing.Union[
@@ -256,7 +406,37 @@ def _molter_from_slash(coro_copy: typing.Callable, **kwargs):
 
 
 @wraps(slash_command)
-def extension_hybrid_slash(*args, **kwargs):
+def extension_hybrid_slash(
+    *,
+    name: typing.Optional[str] = interactions.MISSING,  # type: ignore
+    description: typing.Optional[str] = interactions.MISSING,  # type: ignore
+    scope: typing.Optional[
+        typing.Union[
+            int,
+            interactions.Guild,
+            typing.List[int],
+            typing.List[interactions.Guild],
+        ]
+    ] = interactions.MISSING,  # type: ignore
+    options: typing.Optional[
+        typing.Union[
+            typing.Dict[str, typing.Any],
+            typing.List[typing.Dict[str, typing.Any]],
+            interactions.Option,
+            typing.List[interactions.Option],
+        ]
+    ] = interactions.MISSING,  # type: ignore
+    name_localizations: typing.Optional[
+        typing.Dict[typing.Union[str, interactions.Locale], str]
+    ] = interactions.MISSING,  # type: ignore
+    description_localizations: typing.Optional[
+        typing.Dict[typing.Union[str, interactions.Locale], str]
+    ] = interactions.MISSING,  # type: ignore
+    default_member_permissions: typing.Optional[
+        typing.Union[int, interactions.Permissions]
+    ] = interactions.MISSING,  # type: ignore
+    dm_permission: typing.Optional[bool] = interactions.MISSING,  # type: ignore
+):
     """
     A decorator for creating hybrid commands based off a normal slash command.
     Uses all normal slash command arguments (besides for type), but also makes
@@ -265,6 +445,8 @@ def extension_hybrid_slash(*args, **kwargs):
     Remember to use `HybridContext` as the context for proper type hinting.
     Subcommand options do not work with this decorator right now.
     """
+
+    kwargs = locals()
 
     def decorator(coro):
         # we're about to do some evil things, let's not destroy everything
@@ -287,6 +469,6 @@ def extension_hybrid_slash(*args, **kwargs):
             await coro(self, new_ctx, *args, **kwargs)
 
         wrapped_command.__molter_command__ = molt_cmd
-        return interactions.extension_command(*args, **kwargs)(wrapped_command)
+        return interactions.extension_command(**kwargs)(wrapped_command)
 
     return decorator

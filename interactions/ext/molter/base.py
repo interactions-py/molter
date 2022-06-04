@@ -77,10 +77,11 @@ class MolterExtension(interactions.Extension):
             or hasattr(x, "__molter_command__"),
         ):
             cmd: MolterCommand = getattr(cmd, "__molter_command__", None) or cmd
-            cmd.extension = self
-            cmd.callback = functools.partial(cmd.callback, self)
 
             if not cmd.is_subcommand():  # we don't want to add subcommands
+                cmd.extension = self
+                cmd = utils._wrap_recursive(cmd, self)
+
                 self._molter_prefixed_commands.append(cmd)
                 self.client.molter.add_prefixed_command(cmd)
 

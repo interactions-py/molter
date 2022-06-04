@@ -11,6 +11,7 @@ import interactions
 from . import context
 from . import converters
 from . import errors
+from .utils import _qualname_wrap
 from .utils import _start_quotes
 from .utils import maybe_coroutine
 
@@ -51,6 +52,10 @@ class PrefixedCommandParameter:
     "The default value of the parameter."
     type: typing.Type = attrs.field(default=None)
     "The type of the parameter."
+    kind: inspect._ParameterKind = attrs.field(
+        default=inspect.Parameter.POSITIONAL_OR_KEYWORD
+    )
+    """The kind of parameter this is as related to the function."""
     converters: typing.List[
         typing.Callable[[context.MolterContext, str], typing.Any]
     ] = attrs.field(factory=list)
@@ -259,22 +264,15 @@ def _greedy_parse(greedy: converters.Greedy, param: inspect.Parameter):
 
 
 def _get_params(
-    func: typing.Callable,
+    signature: inspect.Signature,
     type_to_converter: typing.Dict[type, typing.Type[converters.MolterConverter]],
 ):
     cmd_params: list[PrefixedCommandParameter] = []
 
-    # we need to ignore parameters like self and ctx, so this is the easiest way
-    # forgive me, but this is the only reliable way i can find out if the function...
-    if "." in func.__qualname__:  # is part of a class
-        callback = functools.partial(func, None, None)
-    else:
-        callback = functools.partial(func, None)
-
     # this is used by keyword-only and variable args to make sure there isn't more than one of either
     # mind you, we also don't want one keyword-only and one variable arg either
     finished_params = False
-    params = inspect.signature(callback).parameters
+    params = signature.parameters
 
     for name, param in params.items():
         if finished_params:
@@ -285,6 +283,7 @@ def _get_params(
         cmd_param.default = (
             param.default if param.default is not param.empty else interactions.MISSING
         )
+        cmd_param.kind = param.kind
 
         cmd_param.type = anno = param.annotation
 
@@ -445,9 +444,9 @@ class MolterCommand:
     hybrid: bool = attrs.field(default=False)
     """Is this command a hybrid command or not?"""
 
-    help: typing.Optional[str] = attrs.field()
+    help: typing.Optional[str] = attrs.field(default=None)
     """The long help text for the command."""
-    brief: typing.Optional[str] = attrs.field()
+    brief: typing.Optional[str] = attrs.field(default=None)
     "The short help text for the command."
     parent: typing.Optional["MolterCommand"] = attrs.field(
         default=None,
@@ -469,11 +468,18 @@ class MolterCommand:
     _type_to_converter: typing.Dict[
         type, typing.Type[converters.MolterConverter]
     ] = attrs.field(factory=dict, converter=_merge_converters, repr=False)
+    _signature: typing.Optional[inspect.Signature] = attrs.field(
+        default=None, repr=False
+    )
 
     def __attrs_post_init__(self) -> None:
+        if not self._signature:
+            callback = _qualname_wrap(self.callback)
+            self._signature = inspect.signature(callback)
+
         # doing this here just so we don't run into any issues here with a value
         # not being there yet or something if we used defaults, idk
-        self.parameters = _get_params(self.callback, self._type_to_converter)
+        self.parameters = _get_params(self._signature, self._type_to_converter)
 
         # we have to do this afterwards as these rely on the callback
         # and its own value, which is impossible to get with attrs
@@ -808,7 +814,10 @@ class MolterCommand:
                             break
 
                     converted, used_default = await _convert(param, ctx, arg)
-                    if not param.consume_rest:
+                    if param.kind in {
+                        inspect.Parameter.POSITIONAL_ONLY,
+                        inspect.Parameter.VAR_POSITIONAL,
+                    }:
                         new_args.append(converted)
                     else:
                         kwargs[param.name] = converted
@@ -821,7 +830,10 @@ class MolterCommand:
                 for param in self.parameters[param_index:]:
                     if param.no_argument:
                         converted, _ = await _convert(param, ctx, None)  # type: ignore
-                        if not param.consume_rest:
+                        if param.kind in {
+                            inspect.Parameter.POSITIONAL_ONLY,
+                            inspect.Parameter.VAR_POSITIONAL,
+                        }:
                             new_args.append(converted)
                         else:
                             kwargs[param.name] = converted
@@ -833,7 +845,10 @@ class MolterCommand:
                             f"{param.name} is a required argument that is missing."
                         )
                     else:
-                        if not param.consume_rest:
+                        if param.kind in {
+                            inspect.Parameter.POSITIONAL_ONLY,
+                            inspect.Parameter.VAR_POSITIONAL,
+                        }:
                             new_args.append(param.default)
                         else:
                             kwargs[param.name] = param.default

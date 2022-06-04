@@ -1,9 +1,13 @@
 import asyncio
+import functools
 import inspect
 import re
 import typing
 
 import interactions
+
+if typing.TYPE_CHECKING:
+    from .command import MolterCommand
 
 __all__ = (
     "SnowflakeType",
@@ -27,6 +31,32 @@ __all__ = (
 
 SnowflakeType = typing.Union[interactions.Snowflake, int, str]
 OptionalSnowflakeType = typing.Optional[SnowflakeType]
+
+
+def _qualname_self_check(callback: typing.Callable):
+    # we need to ignore parameters like self and ctx, so this is the easiest way
+    # forgive me, but this is the only reliable way i can find out if the function...
+    return "." in callback.__qualname__  # is part of a class
+
+
+def _qualname_wrap(callback: typing.Callable):
+    if _qualname_self_check(callback):
+        return functools.partial(callback, None, None)
+    else:
+        return functools.partial(callback, None)
+
+
+def _wrap_recursive(cmd: "MolterCommand", ext: interactions.Extension):
+    cmd.callback = functools.partial(cmd.callback, ext)
+
+    for subcommand in cmd.all_commands:
+        new_sub = _wrap_recursive(subcommand, ext)
+
+        names = [subcommand.name] + subcommand.aliases
+        for name in names:
+            cmd.subcommands[name] = new_sub
+
+    return cmd
 
 
 def remove_prefix(string: str, prefix: str) -> str:
