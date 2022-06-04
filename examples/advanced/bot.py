@@ -80,6 +80,7 @@ async def a_name(
     await ctx.reply(member_or_user.mention)
 
 
-# Loading the other file to this example, don't mind me.
+# Loading the other files for this example, don't mind me.
 client.load("extension")
+client.load("hybrid")
 client.start()
