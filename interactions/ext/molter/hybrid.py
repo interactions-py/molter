@@ -169,7 +169,7 @@ class _NarrowedChannelConverter(converters.ChannelConverter):
 
 
 def _basic_subcommand_generator(name: str, description: str, group: bool = False):
-    async def _subcommand_base(ctx: HybridContext):
+    async def _subcommand_base(*args, **kwargs):
         if group:
             raise errors.BadArgument(
                 "Cannot run this base command without a subcommand."
