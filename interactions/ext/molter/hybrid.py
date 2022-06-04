@@ -2,6 +2,7 @@ import inspect
 import typing
 from copy import deepcopy
 from functools import wraps
+from logging import getLogger
 
 import interactions
 from . import command
@@ -210,6 +211,16 @@ def _options_to_parameters(
 
     for option in options:
         annotation = _match_option_type(option.type.value)
+
+        if option.autocomplete:
+            # there isn't much we can do here
+            getLogger("molter").warning(
+                "While parsing a hybrid slash command, molter detected an option with"
+                " autocomplete enabled - prefixed commands have no ability to replicate"
+                " autocomplete due to the variety of technical challenges they impose,"
+                " and so will pass in the user's raw input instead. Please add"
+                " safeguards to convert the user's input as appropriate."
+            )
 
         if annotation in {str, int, float} and option.choices:
             actual_choices = _variable_to_choices(option.choices)
