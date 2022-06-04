@@ -50,7 +50,7 @@ class HybridExtension(molter.MolterExtension):
     # or MolterContext. HybridContext is a subclass of MolterContext with a number
     # of utility methods to seemlessly handle both slash commands and prefixed commands.
     # However, for some special slash command actions, like sending a model, there is
-    # HybridContext.interaction, which returns the inner CommandContext if the command
+    # HybridContext.command_context, which returns the inner CommandContext if the command
     # is being run as a slash command.
 
     # There are a number of things not quite shown by this example alone, so let's

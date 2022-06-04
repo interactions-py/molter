@@ -336,7 +336,7 @@ class Molter:
                     channel=ctx.channel,
                     guild=ctx.guild,
                     prefix="/",
-                    interaction=ctx,
+                    command_context=ctx,
                 )
                 new_ctx.args = list(args) + list(kwargs.values())
                 await coro(new_ctx, *args, **kwargs)

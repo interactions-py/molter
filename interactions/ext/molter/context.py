@@ -445,14 +445,14 @@ class HybridContext(MolterContext):
     message: _typing.Optional[interactions.Message] = attrs.field(default=None)
     """The message this represents."""
 
-    interaction: _typing.Optional[interactions.CommandContext] = attrs.field(
+    command_context: _typing.Optional[interactions.CommandContext] = attrs.field(
         default=None
     )
-    """The interaction context, if this is for the slash command version."""
+    """The command context, if this is for the slash command version."""
 
     def __attrs_post_init__(self) -> None:
-        if self.interaction and self.interaction.member:
-            self._channel_permissions = self.interaction.member.permissions
+        if self.command_context and self.command_context.member:
+            self._channel_permissions = self.command_context.member.permissions
 
         return super().__attrs_post_init__()
 
@@ -462,27 +462,32 @@ class HybridContext(MolterContext):
         return self.client
 
     @property
+    def interaction(self) -> _typing.Optional[interactions.CommandContext]:
+        """An alias to `HybridContext.command_context`."""
+        return self.command_context
+
+    @property
     def channel_id(self) -> interactions.Snowflake:
         """Returns the channel ID where the message was sent."""
-        return self.interaction.channel_id if self.interaction else self.message.channel_id  # type: ignore
+        return self.command_context.channel_id if self.command_context else self.message.channel_id  # type: ignore
 
     @property
     def guild_id(self) -> _typing.Optional[interactions.Snowflake]:
         """Returns the guild ID where the message was sent, if applicable."""
-        return self.interaction.guild_id if self.interaction else self.message.guild_id  # type: ignore
+        return self.command_context.guild_id if self.command_context else self.message.guild_id  # type: ignore
 
     @property
     def _http(self) -> interactions.HTTPClient:
         """Returns the HTTP client the client has."""
-        return self.interaction.client if self.interaction else self.client._http  # type: ignore
+        return self.command_context.client if self.command_context else self.client._http  # type: ignore
 
     async def get_channel(self) -> interactions.Channel:
         """Gets the channel where the message was sent."""
         if self.channel:
             return self.channel
 
-        if self.interaction:
-            self.channel = await self.interaction.get_channel()
+        if self.command_context:
+            self.channel = await self.command_context.get_channel()
         else:
             self.channel = await self.message.get_channel()  # type: ignore
         return self.channel
@@ -495,8 +500,8 @@ class HybridContext(MolterContext):
         if not self.guild_id:
             return None
 
-        if self.interaction:
-            self.guild = await self.interaction.get_guild()
+        if self.command_context:
+            self.guild = await self.command_context.get_guild()
         else:
             self.guild = await self.message.get_guild()  # type: ignore
         return self.guild
@@ -520,8 +525,8 @@ class HybridContext(MolterContext):
             ephemeral (`bool`, optional): Whether the response is hidden or not.
             This property is ignored for prefixed commands.
         """
-        if self.interaction:
-            return utils.DeferredTyping(self.interaction, ephemeral)
+        if self.command_context:
+            return utils.DeferredTyping(self.command_context, ephemeral)
 
         return utils.Typing(self._http, int(self.channel_id))
 
@@ -534,8 +539,8 @@ class HybridContext(MolterContext):
             ephemeral (`bool`, optional): Whether the response is hidden or not.
             This property is ignored for prefixed commands.
         """
-        if self.interaction:
-            return await self.interaction.defer(ephemeral)
+        if self.command_context:
+            return await self.command_context.defer(ephemeral)
 
         await self._http.trigger_typing(int(self.channel_id))
 
@@ -599,8 +604,8 @@ class HybridContext(MolterContext):
             `interactions.Message`: The sent message as an object.
         """
 
-        if self.interaction:
-            return await self.interaction.send(
+        if self.command_context:
+            return await self.command_context.send(
                 content,
                 tts=tts,
                 embeds=embeds,
@@ -680,8 +685,8 @@ class HybridContext(MolterContext):
             `interactions.Message`: The sent message as an object.
         """
 
-        if self.interaction:
-            return await self.interaction.send(
+        if self.command_context:
+            return await self.command_context.send(
                 content,
                 tts=tts,
                 embeds=embeds,

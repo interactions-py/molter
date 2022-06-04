@@ -493,7 +493,7 @@ def extension_hybrid_slash(
                 channel=ctx.channel,
                 guild=ctx.guild,
                 prefix="/",
-                interaction=ctx,
+                command_context=ctx,
             )
             new_ctx.args = list(args) + list(kwargs.values())
             await coro(self, new_ctx, *args, **kwargs)
