@@ -86,6 +86,8 @@ class HybridExtension(molter.MolterExtension):
     # (which, yeah, takes time).
     #
     # 7. Yes, basic commands with no groups work.
+    #
+    # 8. No, molter's checks do not work here.
 
     # The below is formatted with black, unlike the original example, by the way.
     @molter.extension_hybrid_slash(
