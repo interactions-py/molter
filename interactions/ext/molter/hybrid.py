@@ -216,12 +216,28 @@ def _options_to_parameters(
         elif annotation == interactions.Channel and option.channel_types:
             annotation = _NarrowedChannelConverter(option.channel_types)
 
-        ori_param = ori_parameters[option.name]
+        if ori_param := ori_parameters.get(option.name):
+            kind = (
+                ori_param.kind
+                if ori_param.kind
+                not in {inspect.Parameter.KEYWORD_ONLY, inspect.Parameter.VAR_KEYWORD}
+                else inspect.Parameter.POSITIONAL_OR_KEYWORD
+            )
+            kind = (
+                ori_param.kind
+                if ori_param.kind != inspect.Parameter.VAR_POSITIONAL
+                else inspect.Parameter.POSITIONAL_ONLY
+            )
+            default = ori_param.default
+        else:
+            kind = inspect.Parameter.POSITIONAL_OR_KEYWORD
+            default = inspect._empty
+
         new_parameters.append(
             inspect.Parameter(
                 option.name,
-                ori_param.kind,
-                default=ori_param.default,
+                kind,
+                default=default,
                 annotation=annotation,
             )
         )
