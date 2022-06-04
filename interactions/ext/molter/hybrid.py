@@ -115,6 +115,20 @@ async def _guild_check(ctx: HybridContext):
     return True
 
 
+class _ChoicesConverter(converters._LiteralConverter):
+    values: typing.Dict
+    choice_values: typing.Dict
+
+    def __init__(self, choices: typing.List[interactions.Choice]):
+        names = tuple(c.name for c in choices)
+        self.values = {arg: type(arg) for arg in names}
+        self.choice_values = {c.name: c.value for c in choices}
+
+    async def convert(self, ctx: HybridContext, argument: str):
+        val = await super().convert(ctx, argument)
+        return self.choice_values[val]
+
+
 class _RangeConverter(converters.MolterConverter[typing.Union[float, int]]):
     def __init__(
         self,
@@ -199,16 +213,7 @@ def _options_to_parameters(
 
         if annotation in {str, int, float} and option.choices:
             actual_choices = _variable_to_choices(option.choices)
-
-            if any(c.name != c.value for c in actual_choices):
-                raise ValueError(
-                    "Hybrid commands do not support choices that have a"
-                    " different value compared to its name."
-                )
-
-            annotation = converters._LiteralConverter(
-                tuple(c.name for c in actual_choices)
-            )
+            annotation = _ChoicesConverter(actual_choices)
         elif annotation in {int, float} and (
             option.min_value is not None or option.max_value is not None
         ):
