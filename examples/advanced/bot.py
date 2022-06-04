@@ -69,7 +69,7 @@ molt = molter.setup(
 # Take a look at molter's converters.py - they have all of the default ones.
 # Most inter.py type converters are smart and take multiple inputs, like names, mentions,
 # IDs, etc, and converts them into objects.
-# Unlike discord.py or dis-snek though, some objects can only take IDs due to technical
+# Unlike discord.py or NAFF though, some objects can only take IDs due to technical
 # reasons.
 # Converters will be talked more in-depth in the extension.
 @molt.prefixed_command(name="test", ignore_extra=False)
