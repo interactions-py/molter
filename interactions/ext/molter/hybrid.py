@@ -244,7 +244,8 @@ def _options_to_parameters(
                 if ori_param.kind != inspect.Parameter.VAR_POSITIONAL
                 else inspect.Parameter.POSITIONAL_ONLY
             )
-            default = ori_param.default
+
+            default = inspect._empty if option.required else ori_param.default
         else:
             kind = inspect.Parameter.POSITIONAL_OR_KEYWORD
             default = inspect._empty

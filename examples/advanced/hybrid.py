@@ -52,11 +52,6 @@ class HybridExtension(molter.MolterExtension):
     # However, for some special slash command actions, like sending a model, there is
     # HybridContext.interaction, which returns the inner CommandContext if the command
     # is being run as a slash command.
-    #
-    # 6. The reason why second_option doesn't have a default value, unlike the original
-    # example, is because at the end of the day, molter still somewhat parses the function
-    # (to a weird extent) and, because it had a default, would have made it optional.
-    # Basically, if you have a required option, don't give the variable a default value.
 
     # There are a number of things not quite shown by this example alone, so let's
     # go over some other points:
@@ -130,7 +125,7 @@ class HybridExtension(molter.MolterExtension):
         self,
         ctx: molter.HybridContext,
         sub_command: str,
-        second_option: str,
+        second_option: str = "",
         option: int = None,
     ):
         if sub_command == "command_name":
