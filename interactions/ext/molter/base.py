@@ -79,7 +79,6 @@ class MolterExtension(interactions.Extension):
             cmd: MolterCommand = getattr(cmd, "__molter_command__", None) or cmd
 
             if not cmd.is_subcommand():  # we don't want to add subcommands
-                cmd.extension = self
                 cmd = utils._wrap_recursive(cmd, self)
 
                 self._molter_prefixed_commands.append(cmd)

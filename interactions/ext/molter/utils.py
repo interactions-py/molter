@@ -47,6 +47,7 @@ def _qualname_wrap(callback: typing.Callable):
 
 
 def _wrap_recursive(cmd: "MolterCommand", ext: interactions.Extension):
+    cmd.extension = ext
     cmd.callback = functools.partial(cmd.callback, ext)
 
     for subcommand in cmd.all_commands:
