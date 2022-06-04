@@ -325,10 +325,6 @@ def _subcommand_group_to_molter(
 
 
 def _molter_from_slash(coro_copy: typing.Callable, **kwargs):
-    if cmd_type := kwargs.get("type"):
-        if cmd_type not in {1, interactions.ApplicationCommandType.CHAT_INPUT}:
-            raise ValueError("Hybrid commands only support slash commands.")
-
     name: str = (
         kwargs.get("name")
         if (name := kwargs.get("name")) and name is not interactions.MISSING  # type: ignore
@@ -463,6 +459,7 @@ def extension_hybrid_slash(
     """
 
     kwargs = locals()
+    kwargs["type"] = interactions.ApplicationCommandType.CHAT_INPUT
 
     def decorator(coro):
         # we're about to do some evil things, let's not destroy everything

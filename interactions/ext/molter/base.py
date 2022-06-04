@@ -319,6 +319,7 @@ class Molter:
         """
         kwargs = locals()
         del kwargs["self"]
+        kwargs["type"] = interactions.ApplicationCommandType.CHAT_INPUT
 
         def decorator(coro):
             coro_copy = deepcopy(coro)
