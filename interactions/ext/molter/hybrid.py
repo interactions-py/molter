@@ -19,45 +19,6 @@ __all__ = ("extension_hybrid_slash",)
 # saying this code is messy is an understatement
 
 
-def _variable_to_options(
-    options: typing.Union[
-        typing.Dict[str, typing.Any],
-        typing.List[typing.Dict[str, typing.Any]],
-        interactions.Option,
-        typing.List[interactions.Option],
-    ]
-):
-    # even if its typehinted as Option, inter.py doesn't guarantee it is
-    if all(isinstance(option, interactions.Option) for option in options):  # type: ignore
-        _options = [option._json for option in options]  # type: ignore
-    elif all(
-        isinstance(option, dict) and all(isinstance(value, str) for value in option)
-        for option in options  # type: ignore
-    ):
-        _options = list(options)  # type: ignore
-    elif isinstance(options, interactions.Option):
-        _options = [options._json]
-    else:
-        _options = [options]  # type: ignore
-
-    _options: typing.List[typing.Dict]
-    return [interactions.Option(**option) for option in _options]
-
-
-def _variable_to_choices(choices):
-    # ditto, but with choices
-    if all(isinstance(choice, dict) for choice in choices):
-        _choices = [
-            choice if isinstance(choice, dict) else choice._json for choice in choices
-        ]
-    elif all(isinstance(choice, interactions.Choice) for choice in choices):
-        _choices = [choice._json for choice in choices]
-    else:
-        _choices = choices
-
-    return [interactions.Choice(**choice) for choice in _choices]
-
-
 def _match_option_type(option_type: int):
     if option_type == 3:
         return str
@@ -223,8 +184,7 @@ def _options_to_parameters(
             )
 
         if annotation in {str, int, float} and option.choices:
-            actual_choices = _variable_to_choices(option.choices)
-            annotation = _ChoicesConverter(actual_choices)
+            annotation = _ChoicesConverter(option.choices)
         elif annotation in {int, float} and (
             option.min_value is not None or option.max_value is not None
         ):
@@ -298,9 +258,7 @@ def _subcommand_to_molter(
 
         new_parameters = None
         if subcommand_option.options:
-            params = _options_to_parameters(
-                _variable_to_options(subcommand_option.options), ori_parameters
-            )
+            params = _options_to_parameters(subcommand_option.options, ori_parameters)
             new_parameters = inspect.Signature(params)
 
         _sub_func = generate_subcommand_func(
@@ -331,7 +289,7 @@ def _subcommand_group_to_molter(
         subcommand = _subcommand_to_molter(
             subcommand_group_option.name,
             subcommand_group_option.description,
-            _variable_to_options(subcommand_group_option.options),  # type: ignore
+            subcommand_group_option.options,  # type: ignore
             coro_copy,
             ori_parameters,
             base_name,
@@ -342,42 +300,40 @@ def _subcommand_group_to_molter(
 
 
 def _molter_from_slash(coro_copy: typing.Callable, **kwargs):
-    name: str = (
-        kwargs.get("name")
-        if (name := kwargs.get("name")) and name is not interactions.MISSING  # type: ignore
-        else coro_copy.__name__  # type: ignore
+    # doing this reduces a ton of messiness since the lib deals with standardizing everything
+    _payloads = slash_command(**kwargs)
+    slash_cmd = (
+        interactions.ApplicationCommand(**_payloads[0])
+        if isinstance(_payloads, list)
+        else interactions.ApplicationCommand(**_payloads)
     )
 
-    description: str = (
-        kwargs.get("description")
-        if (description := kwargs.get("description"))  # type: ignore
-        and description is not interactions.MISSING  # type: ignore
-        else None
-    )  # type: ignore
+    name: str = (
+        slash_cmd.name if slash_cmd.name is not interactions.MISSING else coro_copy.__name__  # type: ignore
+    )
+    description: str = slash_cmd.description
 
     molt_cmd: typing.Optional[command.MolterCommand] = None
 
-    if (options := kwargs.get("options")) and options is not interactions.MISSING:  # type: ignore
-        options = _variable_to_options(options)
-
+    if slash_cmd.options:
         signature = inspect.signature(_qualname_wrap(coro_copy))
         ori_parameters: typing.Dict[str, inspect.Parameter] = signature.parameters  # type: ignore
 
-        first_option = options[0]
+        first_option = slash_cmd.options[0]
 
         if first_option.type.value in {1, 2} and first_option.options:
             if first_option.type == interactions.OptionType.SUB_COMMAND:
                 molt_cmd = _subcommand_to_molter(
-                    name, description, options, coro_copy, ori_parameters
+                    name, description, slash_cmd.options, coro_copy, ori_parameters
                 )
 
             elif first_option.type == interactions.OptionType.SUB_COMMAND_GROUP:
                 molt_cmd = _subcommand_group_to_molter(
-                    name, description, options, coro_copy, ori_parameters
+                    name, description, slash_cmd.options, coro_copy, ori_parameters
                 )
 
         if not molt_cmd:
-            new_parameters = _options_to_parameters(options, ori_parameters)
+            new_parameters = _options_to_parameters(slash_cmd.options, ori_parameters)
             new_signature = inspect.Signature(new_parameters)
 
             molt_cmd = command.MolterCommand(
@@ -394,41 +350,16 @@ def _molter_from_slash(coro_copy: typing.Callable, **kwargs):
             signature=inspect.Signature(None),  # type: ignore
         )
 
-    if (scope := kwargs.get("scope")) and scope is not interactions.MISSING:  # type: ignore
-        scope: typing.Union[
-            int,
-            interactions.Guild,
-            typing.List[int],
-            typing.List[interactions.Guild],
-        ]
+    if isinstance(_payloads, list):
+        scopes = [int(p["guild_id"]) for p in _payloads]
+        molt_cmd.checks.append(_generate_scope_check(scopes))  # type: ignore
 
-        _scopes = []
-
-        if isinstance(scope, list):
-            if all(isinstance(guild, interactions.Guild) for guild in scope):
-                [_scopes.append(int(guild.id)) for guild in scope]  # type: ignore
-            elif all(isinstance(guild, int) for guild in scope):
-                [_scopes.append(guild) for guild in scope]
-        elif isinstance(scope, interactions.Guild):
-            _scopes.append(int(scope.id))
-        else:
-            _scopes.append(scope)
-
-        molt_cmd.checks.append(_generate_scope_check(_scopes))  # type: ignore
-
-    if (
-        default_member_permissions := kwargs.get("default_member_permissions")  # type: ignore
-    ) and default_member_permissions is not interactions.MISSING:
-        default_member_permissions: typing.Union[int, interactions.Permissions]
-
-        if isinstance(default_member_permissions, interactions.Permissions):
-            default_member_permissions = default_member_permissions.value
-
+    if slash_cmd.default_member_permissions:
         molt_cmd.checks.append(
-            _generate_permission_check(default_member_permissions)  # type: ignore
+            _generate_permission_check(int(slash_cmd.default_member_permissions))  # type: ignore
         )
 
-    if kwargs.get("dm_permissions") is False:
+    if slash_cmd.dm_permission is False:
         molt_cmd.checks.append(_guild_check)  # type: ignore
 
     return molt_cmd
