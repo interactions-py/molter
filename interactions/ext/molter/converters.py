@@ -153,7 +153,7 @@ class MemberConverter(IDConverter[interactions.Member]):
         if not result:
             raise errors.BadArgument(f'Member "{argument}" not found.')
 
-        return interactions.Member(**result, _client=ctx._http)
+        return interactions.Member(**result, _client=ctx._http)  # type: ignore
 
 
 class UserConverter(IDConverter[interactions.User]):
@@ -212,7 +212,7 @@ class ChannelConverter(IDConverter[interactions.Channel]):
         if not result:
             raise errors.BadArgument(f'Channel "{argument}" not found.')
 
-        return interactions.Channel(**result, _client=ctx._http)
+        return interactions.Channel(**result, _client=ctx._http)  # type: ignore
 
 
 class RoleConverter(IDConverter[interactions.Role]):
@@ -240,7 +240,7 @@ class RoleConverter(IDConverter[interactions.Role]):
         if not result:
             raise errors.BadArgument(f'Role "{argument}" not found.')
 
-        return interactions.Role(**result, _client=ctx._http)
+        return interactions.Role(**result, _client=ctx._http)  # type: ignore
 
 
 class GuildConverter(IDConverter[interactions.Guild]):
@@ -308,7 +308,7 @@ class MessageConverter(MolterConverter[interactions.Message]):
             if msg_guild_id != guild_id:
                 raise errors.BadArgument(f'Message "{argument}" not found.')
 
-            return interactions.Message(**message_data, _client=ctx._http)
+            return interactions.Message(**message_data, _client=ctx._http)  # type: ignore
         except inter_errors.HTTPException:
             raise errors.BadArgument(f'Message "{argument}" not found.')
 

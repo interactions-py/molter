@@ -300,7 +300,7 @@ class MolterContext:
         # so we've included the basics like the id and the client and that's it
         # really, if i could remove the type, i would
         return self.channel or interactions.Channel(
-            id=self.channel_id, type=0, _client=self._http
+            id=self.channel_id, type=0, _client=self._http  # type: ignore
         )
 
     async def send(
@@ -319,12 +319,12 @@ class MolterContext:
         ] = interactions.MISSING,  # type: ignore
         components: _typing.Optional[
             _typing.Union[
-                "interactions.ActionRow",
-                "interactions.Button",
-                "interactions.SelectMenu",
-                _typing.List["interactions.ActionRow"],
-                _typing.List["interactions.Button"],
-                _typing.List["interactions.SelectMenu"],
+                "interactions.ActionRow",  # type: ignore
+                "interactions.Button",  # type: ignore
+                "interactions.SelectMenu",  # type: ignore
+                _typing.List["interactions.ActionRow"],  # type: ignore
+                _typing.List["interactions.Button"],  # type: ignore
+                _typing.List["interactions.SelectMenu"],  # type: ignore
             ]
         ] = interactions.MISSING,  # type: ignore
         **kwargs,
@@ -364,7 +364,7 @@ class MolterContext:
             files=files,
             embeds=embeds,
             allowed_mentions=allowed_mentions,
-            components=components,
+            components=components,  # type: ignore
             **kwargs,
         )
 
@@ -384,12 +384,12 @@ class MolterContext:
         ] = interactions.MISSING,  # type: ignore
         components: _typing.Optional[
             _typing.Union[
-                "interactions.ActionRow",
-                "interactions.Button",
-                "interactions.SelectMenu",
-                _typing.List["interactions.ActionRow"],
-                _typing.List["interactions.Button"],
-                _typing.List["interactions.SelectMenu"],
+                "interactions.ActionRow",  # type: ignore
+                "interactions.Button",  # type: ignore
+                "interactions.SelectMenu",  # type: ignore
+                _typing.List["interactions.ActionRow"],  # type: ignore
+                _typing.List["interactions.Button"],  # type: ignore
+                _typing.List["interactions.SelectMenu"],  # type: ignore
             ]
         ] = interactions.MISSING,  # type: ignore
         **kwargs,
@@ -428,7 +428,7 @@ class MolterContext:
             files=files,
             embeds=embeds,
             allowed_mentions=allowed_mentions,
-            components=components,
+            components=components,  # type: ignore
             **kwargs,
         )
 
@@ -560,12 +560,12 @@ class HybridContext(MolterContext):
         ] = interactions.MISSING,  # type: ignore
         components: _typing.Optional[
             _typing.Union[
-                "interactions.ActionRow",
-                "interactions.Button",
-                "interactions.SelectMenu",
-                _typing.List["interactions.ActionRow"],
-                _typing.List["interactions.Button"],
-                _typing.List["interactions.SelectMenu"],
+                "interactions.ActionRow",  # type: ignore
+                "interactions.Button",  # type: ignore
+                "interactions.SelectMenu",  # type: ignore
+                _typing.List["interactions.ActionRow"],  # type: ignore
+                _typing.List["interactions.Button"],  # type: ignore
+                _typing.List["interactions.SelectMenu"],  # type: ignore
             ]
         ] = interactions.MISSING,  # type: ignore
         ephemeral: bool = False,
@@ -614,7 +614,7 @@ class HybridContext(MolterContext):
             files=files,
             embeds=embeds,
             allowed_mentions=allowed_mentions,
-            components=components,
+            components=components,  # type: ignore
             **kwargs,
         )
 
@@ -634,12 +634,12 @@ class HybridContext(MolterContext):
         ] = interactions.MISSING,  # type: ignore
         components: _typing.Optional[
             _typing.Union[
-                "interactions.ActionRow",
-                "interactions.Button",
-                "interactions.SelectMenu",
-                _typing.List["interactions.ActionRow"],
-                _typing.List["interactions.Button"],
-                _typing.List["interactions.SelectMenu"],
+                "interactions.ActionRow",  # type: ignore
+                "interactions.Button",  # type: ignore
+                "interactions.SelectMenu",  # type: ignore
+                _typing.List["interactions.ActionRow"],  # type: ignore
+                _typing.List["interactions.Button"],  # type: ignore
+                _typing.List["interactions.SelectMenu"],  # type: ignore
             ]
         ] = interactions.MISSING,  # type: ignore
         ephemeral: bool = False,
@@ -686,6 +686,6 @@ class HybridContext(MolterContext):
             files=files,
             embeds=embeds,
             allowed_mentions=allowed_mentions,
-            components=components,
+            components=components,  # type: ignore
             **kwargs,
         )
