@@ -86,7 +86,7 @@ class MolterExtension(interactions.Extension):
 
         return self
 
-    async def teardown(self) -> None:
+    async def teardown(self, *args, **kwargs) -> None:
         # typehinting funkyness for better typehints
         self.client = typing.cast(MolterInjectedClient, self.client)
 
@@ -97,7 +97,7 @@ class MolterExtension(interactions.Extension):
             for name in names_to_remove:
                 self.client.molter.prefixed_commands.pop(name, None)
 
-        return await super().teardown()
+        return await super().teardown(*args, **kwargs)
 
 
 class Molter:
