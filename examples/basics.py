@@ -5,7 +5,7 @@ from interactions.ext import molter
 # This first part should look rather normal.
 # It's initializing the Client, providing our token and all.
 # Enabling the guild message intent is highly recommended, as otherwise you will
-# be limited to messages that ping the bot for prefix commands.
+# be limited to messages that mention the bot for prefix commands.
 client = interactions.Client(
     token="YOUR TOKEN HERE",
     intents=interactions.Intents.DEFAULT | interactions.Intents.GUILD_MESSAGE_CONTENT,
@@ -14,7 +14,7 @@ client = interactions.Client(
 # Here's where things get interesting, huh?
 # We actually do not want to load molter as an extension - it'll work, but
 # initializing Molter itself via the setup method is the preferred way - using
-# molter.Molter is a close second, though
+# molter.Molter is a close second, though.
 # Regardless, this line lets molter establish its hooks into interactions.py,
 # allowing for its commands to work how they should.
 

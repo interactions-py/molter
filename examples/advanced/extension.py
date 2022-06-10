@@ -35,6 +35,8 @@ class DateTimeConverter(molter.MolterConverter):
 # Extensions, normally, would not work for molter due to a variety of technical
 # reasons. We can make molter commands work by using the MolterExtension class
 # however, as it adds the necessary code and injects to make them work.
+# MolterExtension is a subclass of Extension, so application commands will work
+# with it, too, just as if it were a normal extension.
 class Extension(molter.MolterExtension):
     def __init__(self, client: interactions.Client):
         self.client = client
