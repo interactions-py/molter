@@ -219,32 +219,32 @@ class MolterContext:
         channel = await self.get_channel()
 
         permissions = base_permissions
-        overwrites = channel.permission_overwrites
 
-        if overwrite_everyone := next(
-            (o for o in overwrites if o.id == int(self.guild_id)), None
-        ):
-            permissions &= ~interactions.Permissions(int(overwrite_everyone.deny))
-            permissions |= interactions.Permissions(int(overwrite_everyone.allow))
-
-        allow = interactions.Permissions(0)
-        deny = interactions.Permissions(0)
-
-        for role_id in self.member.roles:
-            if overwrite_role := next(
-                (o for o in overwrites if o.id == str(role_id)), None
+        if overwrites := channel.permission_overwrites:
+            if overwrite_everyone := next(
+                (o for o in overwrites if o.id == int(self.guild_id)), None
             ):
-                allow |= interactions.Permissions(int(overwrite_role.allow))
-                deny |= interactions.Permissions(int(overwrite_role.deny))
+                permissions &= ~interactions.Permissions(int(overwrite_everyone.deny))
+                permissions |= interactions.Permissions(int(overwrite_everyone.allow))
 
-        permissions &= ~deny
-        permissions |= allow
+            allow = interactions.Permissions(0)
+            deny = interactions.Permissions(0)
 
-        if overwrite_member := next(
-            (o for o in overwrites if o.id == str(self.member.id)), None
-        ):
-            permissions &= ~interactions.Permissions(int(overwrite_member.deny))
-            permissions |= interactions.Permissions(int(overwrite_member.allow))
+            for role_id in self.member.roles:
+                if overwrite_role := next(
+                    (o for o in overwrites if o.id == str(role_id)), None
+                ):
+                    allow |= interactions.Permissions(int(overwrite_role.allow))
+                    deny |= interactions.Permissions(int(overwrite_role.deny))
+
+            permissions &= ~deny
+            permissions |= allow
+
+            if overwrite_member := next(
+                (o for o in overwrites if o.id == str(self.member.id)), None
+            ):
+                permissions &= ~interactions.Permissions(int(overwrite_member.deny))
+                permissions |= interactions.Permissions(int(overwrite_member.allow))
 
         self._channel_permissions = permissions
         return permissions
