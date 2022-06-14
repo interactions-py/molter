@@ -11,6 +11,7 @@ import interactions
 from . import context
 from . import converters
 from . import errors
+from .utils import _qualname_wrap
 from .utils import _start_quotes
 from .utils import maybe_coroutine
 
@@ -27,7 +28,7 @@ __all__ = (
 NoneType = type(None)
 
 try:
-    from types import UnionType
+    from types import UnionType  # type: ignore
 
     UNION_TYPES = {typing.Union, UnionType}
 except ImportError:  # 3.8-3.9
@@ -51,6 +52,10 @@ class PrefixedCommandParameter:
     "The default value of the parameter."
     type: typing.Type = attrs.field(default=None)
     "The type of the parameter."
+    kind: inspect._ParameterKind = attrs.field(
+        default=inspect.Parameter.POSITIONAL_OR_KEYWORD
+    )
+    """The kind of parameter this is as related to the function."""
     converters: typing.List[
         typing.Callable[[context.MolterContext, str], typing.Any]
     ] = attrs.field(factory=list)
@@ -63,6 +68,8 @@ class PrefixedCommandParameter:
     "Was the parameter marked as a variable argument?"
     consume_rest: bool = attrs.field(default=False)
     "Was the parameter marked to consume the rest of the input?"
+    no_argument: bool = attrs.field(default=False)
+    "Does this parameter have a converter that subclasses `NoArgumentConverter`?"
 
     @property
     def optional(self) -> bool:
@@ -139,6 +146,7 @@ def _convert_to_bool(argument: str) -> bool:
 def _merge_converters(
     converter_dict: typing.Dict[type, typing.Type[converters.MolterConverter]]
 ) -> typing.Dict[type, typing.Type[converters.MolterConverter]]:
+    # sourcery skip: dict-assign-update-to-union
     global _global_type_to_converter
     combined = dict(_global_type_to_converter)
     combined.update(converter_dict)
@@ -256,22 +264,15 @@ def _greedy_parse(greedy: converters.Greedy, param: inspect.Parameter):
 
 
 def _get_params(
-    func: typing.Callable,
+    signature: inspect.Signature,
     type_to_converter: typing.Dict[type, typing.Type[converters.MolterConverter]],
 ):
     cmd_params: list[PrefixedCommandParameter] = []
 
-    # we need to ignore parameters like self and ctx, so this is the easiest way
-    # forgive me, but this is the only reliable way i can find out if the function...
-    if "." in func.__qualname__:  # is part of a class
-        callback = functools.partial(func, None, None)
-    else:
-        callback = functools.partial(func, None)
-
     # this is used by keyword-only and variable args to make sure there isn't more than one of either
     # mind you, we also don't want one keyword-only and one variable arg either
     finished_params = False
-    params = inspect.signature(callback).parameters
+    params = signature.parameters
 
     for name, param in params.items():
         if finished_params:
@@ -282,6 +283,7 @@ def _get_params(
         cmd_param.default = (
             param.default if param.default is not param.empty else interactions.MISSING
         )
+        cmd_param.kind = param.kind
 
         cmd_param.type = anno = param.annotation
 
@@ -294,13 +296,23 @@ def _get_params(
         if typing_extensions.get_origin(anno) in UNION_TYPES:
             cmd_param.union = True
             for arg in typing_extensions.get_args(anno):
+                if isinstance(anno, converters.NoArgumentConverter) or issubclass(
+                    type_to_converter.get(anno, object), converters.NoArgumentConverter
+                ):
+                    cmd_param.no_argument = True
+
                 if arg != NoneType:
                     converter = _get_converter(arg, name, type_to_converter)
                     cmd_param.converters.append(converter)
                 elif not cmd_param.optional:  # d.py-like behavior
                     cmd_param.default = None
         else:
-            converter = _get_converter(anno, name, type_to_converter)
+            if isinstance(anno, converters.NoArgumentConverter) or issubclass(
+                type_to_converter.get(anno, object), converters.NoArgumentConverter
+            ):
+                cmd_param.no_argument = True
+
+            converter = _get_converter(anno, name, type_to_converter)  # type: ignore
             cmd_param.converters.append(converter)
 
         if param.kind == param.KEYWORD_ONLY:
@@ -352,6 +364,10 @@ async def _convert(
             raise errors.BadArgument(
                 f'Could not convert "{arg}" into {union_types_str}.'
             )
+
+    if param.no_argument:
+        # tells converter not to eat the current argument
+        used_default = True
 
     return converted, used_default
 
@@ -415,17 +431,22 @@ class MolterCommand:
         default=False,
     )
     "If `True`, the default help command does not show this in the help output."
-    ignore_extra: bool = attrs.field(
-        default=True,
-    )
+    ignore_extra: bool = attrs.field(default=True)
     """
     If `True`, ignores extraneous strings passed to a command if all its
     requirements are met (e.g. ?foo a b c when only expecting a and b).
     Otherwise, an error is raised. Defaults to True.
     """
-    help: typing.Optional[str] = attrs.field()
+    hierarchical_checking: bool = attrs.field(default=True)
+    """If `True` and if the base of a subcommand, every subcommand underneath
+    it will run this command's checks and cooldowns before its own. Otherwise,
+    only the subcommand's checks are checked."""
+    hybrid: bool = attrs.field(default=False)
+    """Is this command a hybrid command or not?"""
+
+    help: typing.Optional[str] = attrs.field(default=None)
     """The long help text for the command."""
-    brief: typing.Optional[str] = attrs.field()
+    brief: typing.Optional[str] = attrs.field(default=None)
     "The short help text for the command."
     parent: typing.Optional["MolterCommand"] = attrs.field(
         default=None,
@@ -436,15 +457,29 @@ class MolterCommand:
     )
     "A dict of all subcommands for the command."
 
-    _usage: typing.Optional[str] = attrs.field(default=None)
+    checks: typing.List[
+        typing.Callable[
+            [context.MolterContext], typing.Coroutine[typing.Any, typing.Any, bool]
+        ]
+    ] = attrs.field(factory=list)
+    """A list of checks for this command."""
+
+    _usage: typing.Optional[str] = attrs.field(default=None, repr=False)
     _type_to_converter: typing.Dict[
         type, typing.Type[converters.MolterConverter]
-    ] = attrs.field(factory=dict, converter=_merge_converters)
+    ] = attrs.field(factory=dict, converter=_merge_converters, repr=False)
+    _signature: typing.Optional[inspect.Signature] = attrs.field(
+        default=None, repr=False
+    )
 
     def __attrs_post_init__(self) -> None:
+        if not self._signature:
+            callback = _qualname_wrap(self.callback)
+            self._signature = inspect.signature(callback)
+
         # doing this here just so we don't run into any issues here with a value
         # not being there yet or something if we used defaults, idk
-        self.parameters = _get_params(self.callback, self._type_to_converter)
+        self.parameters = _get_params(self._signature, self._type_to_converter)
 
         # we have to do this afterwards as these rely on the callback
         # and its own value, which is impossible to get with attrs
@@ -459,6 +494,9 @@ class MolterCommand:
 
         if self.brief is None:
             self.brief = self.help.splitlines()[0] if self.help is not None else None
+
+        if hasattr(self.callback, "__checks__"):
+            self.checks = self.callback.__checks__
 
     def __hash__(self):
         return id(self)
@@ -477,7 +515,7 @@ class MolterCommand:
         self._usage = usage
 
     @property
-    def qualified_name(self):
+    def qualified_name(self) -> str:
         """Returns the full qualified name of this command."""
         name_deq = collections.deque()
         command = self
@@ -490,7 +528,7 @@ class MolterCommand:
         return " ".join(name_deq)
 
     @property
-    def all_commands(self):
+    def all_commands(self) -> typing.FrozenSet["MolterCommand"]:
         """Returns all unique subcommands underneath this command."""
         return frozenset(self.subcommands.values())
 
@@ -553,11 +591,11 @@ class MolterCommand:
 
         return " ".join(results)
 
-    def is_subcommand(self):
+    def is_subcommand(self) -> bool:
         """Returns if this command is a subcommand or not."""
         return bool(self.parent)
 
-    def add_command(self, cmd: "MolterCommand"):
+    def add_command(self, cmd: "MolterCommand") -> None:
         """
         Adds a command as a subcommand to this command.
 
@@ -582,7 +620,7 @@ class MolterCommand:
                 )
             self.subcommands[alias] = cmd
 
-    def remove_command(self, name: str):
+    def remove_command(self, name: str) -> None:
         """
         Removes a command as a subcommand from this command.
         If an alias is specified, only the alias will be removed.
@@ -598,7 +636,7 @@ class MolterCommand:
         for alias in command.aliases:
             self.subcommands.pop(alias, None)
 
-    def get_command(self, name: str):
+    def get_command(self, name: str) -> typing.Optional["MolterCommand"]:
         """
         Gets a subcommand from this command. Can get subcommands of subcommands if needed.
         Args:
@@ -636,10 +674,11 @@ class MolterCommand:
         enabled: bool = True,
         hidden: bool = False,
         ignore_extra: bool = True,
+        hierarchical_checking: bool = True,
         type_to_converter: typing.Optional[
             typing.Dict[type, typing.Type[converters.MolterConverter]]
         ] = None,
-    ):
+    ) -> typing.Callable[..., "MolterCommand"]:
         """
         A decorator to declare a subcommand for a molter prefixed command.
 
@@ -672,10 +711,15 @@ class MolterCommand:
             (e.g. ?foo a b c when only expecting a and b).
             Otherwise, an error is raised. Defaults to True.
 
+            hierarchical_checking (`bool`, optional): If `True` and if the
+            base of a subcommand, every subcommand underneath it will run this
+            command's checks before its own. Otherwise, only the subcommand's
+            checks are checked. Defaults to True.
+
             type_to_converter (`dict[type, type[MolterConverter]]`, optional): A dict
             that associates converters for types. This allows you to use
             native type annotations without needing to use `typing.Annotated`.
-            If this is not set, only dis-snek classes will be converted using
+            If this is not set, only interactions.py classes will be converted using
             built-in converters.
 
         Returns:
@@ -693,6 +737,7 @@ class MolterCommand:
                 enabled=enabled,
                 hidden=hidden,
                 ignore_extra=ignore_extra,
+                hierarchical_checking=hierarchical_checking,
                 type_to_converter=type_to_converter  # type: ignore
                 or getattr(func, "_type_to_converter", {}),
             )
@@ -701,17 +746,29 @@ class MolterCommand:
 
         return wrapper
 
-    async def __call__(self, ctx: context.MolterContext):
+    async def _run_checks(self, ctx: context.MolterContext) -> None:
+        for c in self.checks:
+            try:
+                if not await c(ctx):
+                    raise errors.CheckFailure(ctx, check=c)
+            except errors.CheckFailure as e:
+                # pass in check function
+                raise errors.CheckFailure(ctx, e.message, check=c)
+
+    async def __call__(self, ctx: context.MolterContext) -> None:
         """
-        Runs the callback of this command.
+        Runs the command with checks.
+
         Args:
             ctx (`context.MolterContext`): The context to use for this command.
         """
+        await self._run_checks(ctx)
         return await self.invoke(ctx)
 
-    async def invoke(self, ctx: context.MolterContext):
+    async def invoke(self, ctx: context.MolterContext) -> None:
         """
         Runs the callback of this command.
+
         Args:
             ctx (`context.MolterContext`): The context to use for this command.
         """
@@ -757,7 +814,10 @@ class MolterCommand:
                             break
 
                     converted, used_default = await _convert(param, ctx, arg)
-                    if not param.consume_rest:
+                    if param.kind in {
+                        inspect.Parameter.POSITIONAL_ONLY,
+                        inspect.Parameter.VAR_POSITIONAL,
+                    }:
                         new_args.append(converted)
                     else:
                         kwargs[param.name] = converted
@@ -768,12 +828,27 @@ class MolterCommand:
 
             if param_index < len(self.parameters):
                 for param in self.parameters[param_index:]:
+                    if param.no_argument:
+                        converted, _ = await _convert(param, ctx, None)  # type: ignore
+                        if param.kind in {
+                            inspect.Parameter.POSITIONAL_ONLY,
+                            inspect.Parameter.VAR_POSITIONAL,
+                        }:
+                            new_args.append(converted)
+                        else:
+                            kwargs[param.name] = converted
+                            break
+                        continue
+
                     if not param.optional:
                         raise errors.BadArgument(
                             f"{param.name} is a required argument that is missing."
                         )
                     else:
-                        if not param.consume_rest:
+                        if param.kind in {
+                            inspect.Parameter.POSITIONAL_ONLY,
+                            inspect.Parameter.VAR_POSITIONAL,
+                        }:
                             new_args.append(param.default)
                         else:
                             kwargs[param.name] = param.default
@@ -794,10 +869,11 @@ def prefixed_command(
     enabled: bool = True,
     hidden: bool = False,
     ignore_extra: bool = True,
+    hierarchical_checking: bool = True,
     type_to_converter: typing.Optional[
         typing.Dict[type, typing.Type[converters.MolterConverter]]
     ] = None,
-):
+) -> typing.Callable[..., MolterCommand]:
     """
     A decorator to declare a coroutine as a molter prefixed command.
 
@@ -830,10 +906,15 @@ def prefixed_command(
         (e.g. ?foo a b c when only expecting a and b).
         Otherwise, an error is raised. Defaults to True.
 
+        hierarchical_checking (`bool`, optional): If `True` and if the
+        base of a subcommand, every subcommand underneath it will run this
+        command's checks before its own. Otherwise, only the subcommand's
+        checks are checked. Defaults to True.
+
         type_to_converter (`dict[type, type[MolterConverter]]`, optional): A dict
         that associates converters for types. This allows you to use
         native type annotations without needing to use `typing.Annotated`.
-        If this is not set, only dis-snek classes will be converted using
+        If this is not set, only interactions.py classes will be converted using
         built-in converters.
 
     Returns:
@@ -851,6 +932,7 @@ def prefixed_command(
             enabled=enabled,
             hidden=hidden,
             ignore_extra=ignore_extra,
+            hierarchical_checking=hierarchical_checking,
             type_to_converter=type_to_converter  # type: ignore
             or getattr(func, "_type_to_converter", {}),
         )

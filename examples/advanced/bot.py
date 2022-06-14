@@ -69,7 +69,7 @@ molt = molter.setup(
 # Take a look at molter's converters.py - they have all of the default ones.
 # Most inter.py type converters are smart and take multiple inputs, like names, mentions,
 # IDs, etc, and converts them into objects.
-# Unlike discord.py or dis-snek though, some objects can only take IDs due to technical
+# Unlike discord.py or NAFF though, some objects can only take IDs due to technical
 # reasons.
 # Converters will be talked more in-depth in the extension.
 @molt.prefixed_command(name="test", ignore_extra=False)
@@ -80,6 +80,22 @@ async def a_name(
     await ctx.reply(member_or_user.mention)
 
 
-# Loading the other file to this example, don't mind me.
+# Here's a somewhat silly example to demonstrate checks.
+# They're asynchronous functions that take in only the context, and either return
+# a boolean or throw a CheckError,
+async def starts_with_a(ctx: molter.MolterContext):
+    return ctx.user.username.lower().startswith("a")
+
+
+# And here's us using it with a prefixed command. This command will only run if the
+# user has a name that starts with an "a", and will error out otherwise.
+@molt.prefixed_command()
+@molter.check(starts_with_a)
+async def user_starts_with_a(ctx: molter.MolterContext):
+    await ctx.reply("Hey, your username starts with the letter 'a'!")
+
+
+# Loading the other files for this example, don't mind me.
 client.load("extension")
+client.load("hybrid")
 client.start()

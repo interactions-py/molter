@@ -9,15 +9,16 @@ with open("requirements.txt") as f:
 setup(
     name="interactions-molter",
     description=(
-        "An extension library for interactions.py to add prefixed commands. Ported from"
-        " dis-snek."
+        "An extension library for interactions.py to add prefixed commands. A"
+        " demonstration of molter-core."
     ),
     long_description=(Path(__file__).parent / "README.md").read_text(),
     long_description_content_type="text/markdown",
     author="Astrea49",
     url="https://github.com/interactions-py/molter",
-    version="0.4.3",
+    version="0.5.0",
     packages=["interactions.ext.molter"],
+    include_package_data=True,
     python_requires=">=3.8.6",
     install_requires=requirements,
     classifiers=[

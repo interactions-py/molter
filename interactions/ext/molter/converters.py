@@ -9,6 +9,7 @@ from .context import MolterContext
 
 __all__ = (
     "MolterConverter",
+    "NoArgumentConverter",
     "IDConverter",
     "SnowflakeConverter",
     "MemberConverter",
@@ -37,6 +38,16 @@ async def _wrap_http_exception(
 
 @typing.runtime_checkable
 class MolterConverter(typing.Protocol[T_co]):
+    async def convert(self, ctx: MolterContext, argument: str) -> T_co:
+        raise NotImplementedError("Derived classes need to implement this.")
+
+
+class NoArgumentConverter(typing.Generic[T_co]):
+    """
+    An indicator class for special type of converters that only uses the context.
+    Arguments will be "eaten up" by converters otherwise.
+    """
+
     async def convert(self, ctx: MolterContext, argument: str) -> T_co:
         raise NotImplementedError("Derived classes need to implement this.")
 
@@ -78,26 +89,22 @@ class SnowflakeConverter(IDConverter[interactions.Snowflake]):
         )
 
         if match is None:
-            raise errors.BadArgument(argument)
+            raise errors.BadArgument(f'"{argument}" is not a valid snowflake.')
 
         return interactions.Snowflake(match.group(1))
 
 
 class MemberConverter(IDConverter[interactions.Member]):
-    def _display_name(self, member: interactions.Member):
-        return member.nick or member.user.username
-
-    def _get_member_from_list(
-        self, members: typing.List[interactions.Member], argument: str
-    ):
+    def _get_member_from_list(self, members_data: typing.List[dict], argument: str):
         # sourcery skip: assign-if-exp
         result = None
         if len(argument) > 5 and argument[-5] == "#":
             result = next(
                 (
                     m
-                    for m in members
-                    if f"{m.user.username}#{m.user.discriminator}" == argument
+                    for m in members_data
+                    if f"{m['user']['username']}#{m['user']['discriminator']}"
+                    == argument
                 ),
                 None,
             )
@@ -106,8 +113,8 @@ class MemberConverter(IDConverter[interactions.Member]):
             result = next(
                 (
                     m
-                    for m in members
-                    if self._display_name(m) == argument or m.user.username == argument
+                    for m in members_data
+                    if m.get("nick") == argument or m["user"]["username"] == argument
                 ),
                 None,
             )
@@ -118,34 +125,35 @@ class MemberConverter(IDConverter[interactions.Member]):
         if not ctx.guild_id:
             raise errors.BadArgument("This command cannot be used in private messages.")
 
-        guild = await ctx.get_guild()
         match = self._get_id_match(argument) or re.match(
             r"<@!?([0-9]{15,})>$", argument
         )
         result = None
 
         if match:
-            result = await _wrap_http_exception(guild.get_member(int(match.group(1))))
+            result = await _wrap_http_exception(
+                ctx._http.get_member(
+                    guild_id=int(ctx.guild_id),
+                    member_id=int(match.group(1)),
+                )
+            )
         else:
             query = argument
             if len(argument) > 5 and argument[-5] == "#":
                 query, _, _ = argument.rpartition("#")
 
             members_data = await _wrap_http_exception(
-                ctx._http.search_guild_members(int(ctx.guild_id), query, limit=100)
+                ctx._http.search_guild_members(int(ctx.guild_id), query, limit=5)
             )
             if not members_data:
                 raise errors.BadArgument(f'Member "{argument}" not found.')
 
-            members = [
-                interactions.Member(**data, _client=ctx._http) for data in members_data
-            ]
-            result = self._get_member_from_list(members, argument)
+            result = self._get_member_from_list(members_data, argument)
 
         if not result:
             raise errors.BadArgument(f'Member "{argument}" not found.')
 
-        return result
+        return interactions.Member(**result, _client=ctx._http)
 
 
 class UserConverter(IDConverter[interactions.User]):
@@ -158,8 +166,6 @@ class UserConverter(IDConverter[interactions.User]):
 
         if match:
             result = await _wrap_http_exception(ctx._http.get_user(int(match.group(1))))
-            if result:
-                result = interactions.User(**result)
         else:
             # sadly, ids are the only viable way of getting
             # accurate user objects in a reasonable manner
@@ -173,7 +179,7 @@ class UserConverter(IDConverter[interactions.User]):
         if not result:
             raise errors.BadArgument(f'User "{argument}" not found.')
 
-        return result
+        return interactions.User(**result)
 
 
 class ChannelConverter(IDConverter[interactions.Channel]):
@@ -189,20 +195,24 @@ class ChannelConverter(IDConverter[interactions.Channel]):
             result = await _wrap_http_exception(
                 ctx._http.get_channel(int(match.group(1)))
             )
-            if result:
-                result = interactions.Channel(**result, _client=ctx._http)
         elif ctx.guild_id:
-            guild = await ctx.get_guild()
-            channels = await guild.get_all_channels()
-            result = next(
-                (c for c in channels if c.name == utils.remove_prefix(argument, "#")),
-                None,
+            raw_channels = await _wrap_http_exception(
+                ctx._http.get_all_channels(int(ctx.guild_id))
             )
+            if raw_channels:
+                result = next(
+                    (
+                        c
+                        for c in raw_channels
+                        if c.get("name") == utils.remove_prefix(argument, "#")
+                    ),
+                    None,
+                )
 
         if not result:
             raise errors.BadArgument(f'Channel "{argument}" not found.')
 
-        return result
+        return interactions.Channel(**result, _client=ctx._http)
 
 
 class RoleConverter(IDConverter[interactions.Role]):
@@ -214,23 +224,23 @@ class RoleConverter(IDConverter[interactions.Role]):
         if not ctx.guild_id:
             raise errors.BadArgument("This command cannot be used in private messages.")
 
-        guild = await ctx.get_guild()
+        raw_roles = await ctx._http.get_all_roles(int(ctx.guild_id))
         match = self._get_id_match(argument) or re.match(r"<@&([0-9]{15,})>$", argument)
         result = None
 
         if match:
             # this is faster than using get_role and is also accurate
-            result = next((r for r in guild.roles if str(r.id) == match.group(1)), None)
+            result = next((r for r in raw_roles if r["id"] == match.group(1)), None)
         else:
             result = next(
-                (r for r in guild.roles if r.name == argument),
+                (r for r in raw_roles if r["name"] == argument),
                 None,
             )
 
         if not result:
             raise errors.BadArgument(f'Role "{argument}" not found.')
 
-        return result
+        return interactions.Role(**result, _client=ctx._http)
 
 
 class GuildConverter(IDConverter[interactions.Guild]):
@@ -285,7 +295,7 @@ class MessageConverter(MolterConverter[interactions.Message]):
         guild_id = str(guild_id) if guild_id != "@me" else None
 
         try:
-            message_data = await ctx._http.get_message(channel_id, message_id)
+            message_data: dict = await ctx._http.get_message(channel_id, message_id)  # type: ignore
 
             msg_guild_id: typing.Optional[str] = message_data.get("guild_id")
             if not msg_guild_id:
@@ -293,15 +303,27 @@ class MessageConverter(MolterConverter[interactions.Message]):
                 # messages, we have to do a request to get the channel's guild id
                 # this does mean we have to waste a request, but oh well
                 channel_data = await ctx._http.get_channel(channel_id)
-                msg_guild_id = channel_data.get("guild_id")
+                msg_guild_id = message_data["guild_id"] = channel_data.get("guild_id")
 
             if msg_guild_id != guild_id:
                 raise errors.BadArgument(f'Message "{argument}" not found.')
 
-            message_data = await ctx._http.get_message(channel_id, message_id)
             return interactions.Message(**message_data, _client=ctx._http)
         except inter_errors.HTTPException:
             raise errors.BadArgument(f'Message "{argument}" not found.')
+
+
+class AttachmentConverter(NoArgumentConverter[interactions.Attachment]):
+    async def convert(self, ctx: MolterContext, _) -> interactions.Attachment:
+        # could be edited by a dev, but... why
+        attachment_counter: int = ctx.extras.get("__molter_attachment_counter", 0)
+
+        try:
+            attach = ctx.message.attachments[attachment_counter]
+            ctx.extras["__molter_attachment_counter"] = attachment_counter + 1
+            return attach
+        except IndexError:
+            raise errors.BadArgument("There are no more attachments for this context.")
 
 
 class Greedy(typing.List[T]):
@@ -319,4 +341,5 @@ INTER_OBJECT_TO_CONVERTER: typing.Dict[type, typing.Type[MolterConverter]] = {
     interactions.Role: RoleConverter,
     interactions.Guild: GuildConverter,
     interactions.Message: MessageConverter,
+    interactions.Attachment: AttachmentConverter,  # type: ignore
 }

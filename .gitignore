@@ -129,6 +129,8 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
+.vscode/
+
 
 # test bot haha
 test_bot/
