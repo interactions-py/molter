@@ -79,4 +79,4 @@ To view more examples and understand how `molter` works, take a look at the [`ex
 
 ## Credit
 
-Thanks to both [`dis-snek`](https://github.com/Discord-Snake-Pit/Dis-Snek) and [Toricane's `interactions-message-commands`](https://github.com/Toricane/interactions-message-commands) for a decent part of this! They both had a huge influence over how this port was designed.
+Thanks to both [`NAFF`](https://github.com/NAFTeam/NAFF) and [Toricane's `interactions-message-commands`](https://github.com/Toricane/interactions-message-commands) for a decent part of this! They both had a huge influence over how this port was designed.
