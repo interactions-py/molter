@@ -77,6 +77,12 @@ def setup(client: interactions.Client):
 
 To view more examples and understand how `molter` works, take a look at the [`examples`](https://github.com/interactions-py/molter/tree/main/examples) folder in this repository.
 
+## Branch Explanation
+
+- The `main` branch is the PyPI version - this branch will never deviate from it. This is done to make sure the PyPI page's example links link to the right code.
+- The `stable` branch is code considered code that is stable enough to use in daily use, though it is not perfect. This branch also will target any beta, pre-release, or release candidate version of `interactions.py`, if possible.
+- The `dev` branch mirrors `interactions.py`'s `unstable` branch, and is also a general testing ground for new and experimental changes. *Bugs are common on this branch. If you decide to use this branch, I highly suggest pinning to a specific commit you know is stable.*
+
 ## Credit
 
 Thanks to both [`NAFF`](https://github.com/NAFTeam/NAFF) and [Toricane's `interactions-message-commands`](https://github.com/Toricane/interactions-message-commands) for a decent part of this! They both had a huge influence over how this port was designed.
