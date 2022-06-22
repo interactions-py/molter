@@ -501,14 +501,13 @@ class Molter:
                 context.command = command
 
                 try:
+                    self.client._websocket._dispatch.dispatch(
+                        "on_molter_command", context
+                    )
                     await command(context)
                 except Exception as e:
                     self.client._websocket._dispatch.dispatch(
                         "on_molter_command_error", context, e
-                    )
-                finally:
-                    self.client._websocket._dispatch.dispatch(
-                        "on_molter_command", context
                     )
 
 
