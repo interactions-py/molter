@@ -88,7 +88,7 @@ class _PrefixedArgsIterator:
     index: int = attrs.field(init=False, default=0)
     length: int = attrs.field(init=False, default=0)
 
-    def __iter__(self) -> "_PrefixedArgsIterator":
+    def __iter__(self) -> typing_extensions.Self:
         self.length = len(self.args)
         return self
 
@@ -448,11 +448,11 @@ class MolterCommand:
     """The long help text for the command."""
     brief: typing.Optional[str] = attrs.field(default=None)
     "The short help text for the command."
-    parent: typing.Optional["MolterCommand"] = attrs.field(
+    parent: typing.Optional[typing_extensions.Self] = attrs.field(
         default=None,
     )
     "The parent command, if applicable."
-    subcommands: typing.Dict[str, "MolterCommand"] = attrs.field(
+    subcommands: typing.Dict[str, typing_extensions.Self] = attrs.field(
         factory=dict,
     )
     "A dict of all subcommands for the command."
@@ -528,7 +528,7 @@ class MolterCommand:
         return " ".join(name_deq)
 
     @property
-    def all_commands(self) -> typing.FrozenSet["MolterCommand"]:
+    def all_commands(self) -> typing.FrozenSet[typing_extensions.Self]:
         """Returns all unique subcommands underneath this command."""
         return frozenset(self.subcommands.values())
 
@@ -595,7 +595,7 @@ class MolterCommand:
         """Returns if this command is a subcommand or not."""
         return bool(self.parent)
 
-    def add_command(self, cmd: "MolterCommand") -> None:
+    def add_command(self, cmd: typing_extensions.Self) -> None:
         """
         Adds a command as a subcommand to this command.
 
@@ -636,7 +636,7 @@ class MolterCommand:
         for alias in command.aliases:
             self.subcommands.pop(alias, None)
 
-    def get_command(self, name: str) -> typing.Optional["MolterCommand"]:
+    def get_command(self, name: str) -> typing.Optional[typing_extensions.Self]:
         """
         Gets a subcommand from this command. Can get subcommands of subcommands if needed.
         Args:
@@ -678,7 +678,7 @@ class MolterCommand:
         type_to_converter: typing.Optional[
             typing.Dict[type, typing.Type[converters.MolterConverter]]
         ] = None,
-    ) -> typing.Callable[..., "MolterCommand"]:
+    ) -> typing.Callable[..., typing_extensions.Self]:
         """
         A decorator to declare a subcommand for a molter prefixed command.
 
