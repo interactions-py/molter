@@ -27,12 +27,12 @@ T = typing.TypeVar("T")
 T_co = typing.TypeVar("T_co", covariant=True)
 
 
-async def _wrap_http_exception(
+async def _wrap_lib_exception(
     function: typing.Coroutine[typing.Any, typing.Any, T]
 ) -> typing.Optional[T]:
     try:
         return await function
-    except inter_errors.HTTPException:
+    except inter_errors.LibraryException:
         return None
 
 
@@ -131,7 +131,7 @@ class MemberConverter(IDConverter[interactions.Member]):
         result = None
 
         if match:
-            result = await _wrap_http_exception(
+            result = await _wrap_lib_exception(
                 ctx._http.get_member(
                     guild_id=int(ctx.guild_id),
                     member_id=int(match.group(1)),
@@ -142,7 +142,7 @@ class MemberConverter(IDConverter[interactions.Member]):
             if len(argument) > 5 and argument[-5] == "#":
                 query, _, _ = argument.rpartition("#")
 
-            members_data = await _wrap_http_exception(
+            members_data = await _wrap_lib_exception(
                 ctx._http.search_guild_members(int(ctx.guild_id), query, limit=5)
             )
             if not members_data:
@@ -165,7 +165,7 @@ class UserConverter(IDConverter[interactions.User]):
         result = None
 
         if match:
-            result = await _wrap_http_exception(ctx._http.get_user(int(match.group(1))))
+            result = await _wrap_lib_exception(ctx._http.get_user(int(match.group(1))))
         else:
             # sadly, ids are the only viable way of getting
             # accurate user objects in a reasonable manner
@@ -192,11 +192,11 @@ class ChannelConverter(IDConverter[interactions.Channel]):
         result = None
 
         if match:
-            result = await _wrap_http_exception(
+            result = await _wrap_lib_exception(
                 ctx._http.get_channel(int(match.group(1)))
             )
         elif ctx.guild_id:
-            raw_channels = await _wrap_http_exception(
+            raw_channels = await _wrap_lib_exception(
                 ctx._http.get_all_channels(int(ctx.guild_id))
             )
             if raw_channels:
@@ -260,7 +260,7 @@ class GuildConverter(IDConverter[interactions.Guild]):
         try:
             guild_data = await ctx._http.get_guild(guild_id)
             return interactions.Guild(**guild_data, _client=ctx._http)
-        except inter_errors.HTTPException:
+        except inter_errors.LibraryException:
             raise errors.BadArgument(f'Guild "{argument}" not found.')
 
 
@@ -309,7 +309,7 @@ class MessageConverter(MolterConverter[interactions.Message]):
                 raise errors.BadArgument(f'Message "{argument}" not found.')
 
             return interactions.Message(**message_data, _client=ctx._http)  # type: ignore
-        except inter_errors.HTTPException:
+        except inter_errors.LibraryException:
             raise errors.BadArgument(f'Message "{argument}" not found.')
 
 
