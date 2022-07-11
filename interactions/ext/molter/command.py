@@ -1,6 +1,5 @@
 import collections
 import contextlib
-import functools
 import inspect
 import typing
 
@@ -461,6 +460,10 @@ class MolterCommand:
         ]
     ] = attrs.field(factory=list)
     """A list of checks for this command."""
+    error_callback: typing.Optional[
+        typing.Callable[[context.MolterContext, Exception], typing.Coroutine]
+    ] = attrs.field(default=None)
+    """The callback to use if an error occurs."""
 
     _usage: typing.Optional[str] = attrs.field(default=None, repr=False)
     _type_to_converter: typing.Dict[
@@ -660,6 +663,35 @@ class MolterCommand:
                 return None
 
         return cmd
+
+    def error(
+        self,
+        error_callback: typing.Optional[
+            typing.Callable[[context.MolterContext, Exception], typing.Coroutine]
+        ] = None,
+    ):
+        """
+        A decorator to register an error callback for a command.
+
+        Args:
+            error_callback (Callable[[MolterContext, Exception], Coroutine]]):
+            The error callback to register. It must be an asynchronous function that
+            takes in MolterContext and an exception.
+        """
+
+        def decorator(
+            error_callback: typing.Callable[
+                [context.MolterContext, Exception], typing.Coroutine
+            ]
+        ):
+            self.error_callback = error_callback
+            return error_callback
+
+        if error_callback is not None:
+            self.error_callback = error_callback
+            return error_callback
+
+        return decorator
 
     def subcommand(
         self,

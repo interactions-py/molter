@@ -55,6 +55,9 @@ class MolterExtension(interactions.Extension):
     """An extension that allows you to use molter commands in them."""
 
     client: interactions.Client
+    on_molter_command_error: typing.Optional[
+        typing.Callable[[MolterContext, Exception], typing.Coroutine]
+    ] = None
     _molter_prefixed_commands: typing.List[MolterCommand]
 
     def __new__(
@@ -380,9 +383,17 @@ class Molter:
                     try:
                         await command._run_checks(context)
                     except Exception as e:
-                        self.client._websocket._dispatch.dispatch(
-                            "on_molter_command_error", context, e
-                        )
+                        if command.error_callback:
+                            await command.error_callback(context, e)
+                        elif (
+                            command.extension
+                            and command.extension.on_molter_command_error
+                        ):
+                            await command.extension.on_molter_command_error(context, e)
+                        else:
+                            self.client._websocket._dispatch.dispatch(
+                                "on_molter_command_error", context, e
+                            )
                         return
 
             if isinstance(command, Molter):
@@ -403,9 +414,16 @@ class Molter:
                     )
                     await command(context)
                 except Exception as e:
-                    self.client._websocket._dispatch.dispatch(
-                        "on_molter_command_error", context, e
-                    )
+                    if command.error_callback:
+                        await command.error_callback(context, e)
+                    elif (
+                        command.extension and command.extension.on_molter_command_error
+                    ):
+                        await command.extension.on_molter_command_error(context, e)
+                    else:
+                        self.client._websocket._dispatch.dispatch(
+                            "on_molter_command_error", context, e
+                        )
                 finally:
                     self.client._websocket._dispatch.dispatch(
                         "on_molter_command_complete", context
