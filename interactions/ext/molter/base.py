@@ -123,6 +123,7 @@ class Molter:
     def __init__(
         self,
         client: interactions.Client,
+        *,
         default_prefix: typing.Optional[typing.Union[str, typing.Iterable[str]]] = None,
         generate_prefixes: typing.Optional[
             typing.Callable[
@@ -512,6 +513,7 @@ class Molter:
 
 def setup(
     client: interactions.Client,
+    *,
     default_prefix: typing.Optional[typing.Union[str, typing.Iterable[str]]] = None,
     generate_prefixes: typing.Optional[
         typing.Callable[
@@ -521,11 +523,9 @@ def setup(
             ],
         ]
     ] = None,
-    fetch_data_for_context: bool = False,
     on_molter_command_error: typing.Optional[
         typing.Callable[[MolterContext, Exception], typing.Coroutine]
     ] = None,
-    *args,
     **kwargs,
 ) -> Molter:
     """
@@ -551,8 +551,9 @@ def setup(
         `Molter`: The class that deals with all things Molter.
     """
     return Molter(
-        client,
-        default_prefix,
-        generate_prefixes,
-        on_molter_command_error,
+        client=client,
+        default_prefix=default_prefix,
+        generate_prefixes=generate_prefixes,
+        on_molter_command_error=on_molter_command_error,
+        **kwargs,
     )
