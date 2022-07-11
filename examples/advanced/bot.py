@@ -97,5 +97,4 @@ async def user_starts_with_a(ctx: molter.MolterContext):
 
 # Loading the other files for this example, don't mind me.
 client.load("extension")
-client.load("hybrid")
 client.start()

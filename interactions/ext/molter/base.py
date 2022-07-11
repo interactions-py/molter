@@ -1,19 +1,14 @@
-import functools
 import inspect
 import logging
 import traceback
 import typing
-from copy import deepcopy
 
 import interactions
 from . import utils
 from .command import MolterCommand
-from .context import HybridContext
 from .context import MolterContext
 from .converters import MolterConverter
-from .hybrid import _molter_from_slash
 from interactions import ext
-from interactions.client.decor import command as slash_command
 
 __all__ = (
     "__version__",
@@ -269,75 +264,6 @@ class Molter:
     prefix_command = prefixed_command
     text_based_command = prefixed_command
 
-    @functools.wraps(slash_command)
-    def hybrid_slash(
-        self,
-        *,
-        name: typing.Optional[str] = interactions.MISSING,  # type: ignore
-        description: typing.Optional[str] = interactions.MISSING,  # type: ignore
-        scope: typing.Optional[
-            typing.Union[
-                int,
-                interactions.Guild,
-                typing.List[int],
-                typing.List[interactions.Guild],
-            ]
-        ] = interactions.MISSING,  # type: ignore
-        options: typing.Optional[
-            typing.Union[
-                typing.Dict[str, typing.Any],
-                typing.List[typing.Dict[str, typing.Any]],
-                interactions.Option,
-                typing.List[interactions.Option],
-            ]
-        ] = interactions.MISSING,  # type: ignore
-        name_localizations: typing.Optional[
-            typing.Dict[typing.Union[str, interactions.Locale], str]
-        ] = interactions.MISSING,  # type: ignore
-        description_localizations: typing.Optional[
-            typing.Dict[typing.Union[str, interactions.Locale], str]
-        ] = interactions.MISSING,  # type: ignore
-        default_member_permissions: typing.Optional[
-            typing.Union[int, interactions.Permissions]
-        ] = interactions.MISSING,  # type: ignore
-        dm_permission: typing.Optional[bool] = interactions.MISSING,  # type: ignore
-    ):
-        """
-        A decorator for creating hybrid commands based off a normal slash command.
-        Uses all normal slash command arguments (besides for type), but also makes
-        a prefixed command when used in conjunction with `MolterExtension`.
-
-        Remember to use `HybridContext` as the context for proper type hinting.
-        Subcommand options do not work with this decorator right now.
-        """
-        kwargs = locals()
-        del kwargs["self"]
-        kwargs["type"] = interactions.ApplicationCommandType.CHAT_INPUT
-
-        def decorator(coro):
-            coro_copy = deepcopy(coro)
-            molt_cmd = _molter_from_slash(coro_copy, **kwargs)
-            self.add_prefixed_command(molt_cmd)
-
-            async def wrapped_command(
-                ctx: interactions.CommandContext, *args, **kwargs
-            ):
-                new_ctx = HybridContext(
-                    message=ctx.message,
-                    user=ctx.user,
-                    member=ctx.member,
-                    channel=ctx.channel,
-                    guild=ctx.guild,
-                    prefix="/",
-                    command_context=ctx,
-                )
-                new_ctx.args = list(args) + list(kwargs.values())
-                await coro(new_ctx, *args, **kwargs)
-
-            return self.client.command(**kwargs)(wrapped_command)
-
-        return decorator
-
     async def generate_prefixes(
         self, client: interactions.Client, msg: interactions.Message
     ) -> typing.Union[str, typing.Iterable[str]]:
@@ -408,28 +334,6 @@ class Molter:
             guild=guild,
         )
 
-    def _standard_to_hybrid(self, ctx: MolterContext) -> HybridContext:
-        """
-        Creates a `HybridContext` object from `MolterContext`.
-
-        Args:
-            ctx (`MolterContext`): The context to create a hybrid context from.
-
-        Returns:
-            `HybridContext`: The context generated.
-        """
-        new_ctx = HybridContext(  # type: ignore
-            client=ctx.client,
-            message=ctx.message,
-            user=ctx.author,  # type: ignore
-            member=ctx.member,
-            channel=ctx.channel,
-            guild=ctx.guild,
-        )
-        new_ctx.prefix = ctx.prefix
-        new_ctx.content_parameters = ctx.content_parameters
-        return new_ctx
-
     async def _handle_prefixed_commands(self, msg: interactions.Message):
         """
         Determines if a command is being triggered and dispatch it.
@@ -485,9 +389,6 @@ class Molter:
                 command = None
 
             if command and command.enabled:
-                if command.hybrid:
-                    context = self._standard_to_hybrid(context)
-
                 # this looks ugly, ik
                 context.invoked_name = utils.remove_suffix(
                     utils.remove_prefix(msg.content, prefix_used),
