@@ -21,6 +21,7 @@ __all__ = (
     "text_based_command",
     "register_converter",
     "globally_register_converter",
+    "ext_error_handler",
 )
 
 
@@ -1047,3 +1048,32 @@ def globally_register_converter(
     # hate me, but i think it makes sense here
     global _global_type_to_converter
     _global_type_to_converter.update({anno_type: converter})
+
+
+def ext_error_handler(
+    error_callback: typing.Optional[
+        typing.Callable[[context.MolterContext, Exception], typing.Coroutine]
+    ] = None
+):
+    """
+    A decorator to register an error callback for a MolterExtension.
+
+    Args:
+        error_callback (Callable[[MolterContext, Exception], Coroutine]]):
+        The error callback to register. It must be an asynchronous function that
+        takes in MolterContext and an exception.
+    """
+
+    def decorator(
+        error_callback: typing.Callable[
+            [context.MolterContext, Exception], typing.Coroutine
+        ]
+    ):
+        error_callback.__ext_molter_error__ = True
+        return error_callback
+
+    if error_callback is not None:
+        error_callback.__ext_molter_error__ = True
+        return error_callback
+
+    return decorator

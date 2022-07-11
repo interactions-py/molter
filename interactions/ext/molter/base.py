@@ -55,7 +55,7 @@ class MolterExtension(interactions.Extension):
     """An extension that allows you to use molter commands in them."""
 
     client: interactions.Client
-    on_molter_command_error: typing.Optional[
+    _error_callback: typing.Optional[
         typing.Callable[[MolterContext, Exception], typing.Coroutine]
     ] = None
     _molter_prefixed_commands: typing.List[MolterCommand]
@@ -69,17 +69,29 @@ class MolterExtension(interactions.Extension):
         # typehinting funkyness for better typehints
         self.client = typing.cast(MolterInjectedClient, self.client)
 
-        for _, cmd in inspect.getmembers(
+        error_handler_count = 0
+
+        for _, func in inspect.getmembers(
             self,
             predicate=lambda x: isinstance(x, MolterCommand)
-            or hasattr(x, "__molter_command__"),
+            or hasattr(x, "__ext_molter_error__"),
         ):
-            cmd: MolterCommand = getattr(cmd, "__molter_command__", None) or cmd
+            if isinstance(func, MolterCommand):
+                cmd: MolterCommand = func
 
-            if not cmd.is_subcommand():  # we don't want to add subcommands
-                cmd = utils._wrap_recursive(cmd, self)
-                self._molter_prefixed_commands.append(cmd)
-                self.client.molter.add_prefixed_command(cmd)
+                if not cmd.is_subcommand():  # we don't want to add subcommands
+                    cmd = utils._wrap_recursive(cmd, self)
+                    self._molter_prefixed_commands.append(cmd)
+                    self.client.molter.add_prefixed_command(cmd)
+            elif hasattr(func, "__ext_molter_error__"):
+                if error_handler_count >= 1:
+                    raise ValueError(
+                        "An MolterExtension cannot have more than one molter command"
+                        " error handler."
+                    )
+
+                self._error_callback = func
+                error_handler_count += 1
 
         return self
 
@@ -385,11 +397,8 @@ class Molter:
                     except Exception as e:
                         if command.error_callback:
                             await command.error_callback(context, e)
-                        elif (
-                            command.extension
-                            and command.extension.on_molter_command_error
-                        ):
-                            await command.extension.on_molter_command_error(context, e)
+                        elif command.extension and command.extension._error_callback:
+                            await command.extension._error_callback(context, e)
                         else:
                             self.client._websocket._dispatch.dispatch(
                                 "on_molter_command_error", context, e
@@ -416,10 +425,8 @@ class Molter:
                 except Exception as e:
                     if command.error_callback:
                         await command.error_callback(context, e)
-                    elif (
-                        command.extension and command.extension.on_molter_command_error
-                    ):
-                        await command.extension.on_molter_command_error(context, e)
+                    elif command.extension and command.extension._error_callback:
+                        await command.extension._error_callback(context, e)
                     else:
                         self.client._websocket._dispatch.dispatch(
                             "on_molter_command_error", context, e
