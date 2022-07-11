@@ -23,6 +23,10 @@ __all__ = (
     "globally_register_converter",
 )
 
+
+if typing.TYPE_CHECKING:
+    from .base import MolterExtension
+
 # 3.8+ compatibility
 NoneType = type(None)
 
@@ -409,7 +413,7 @@ async def _greedy_convert(
     hash=False,
 )
 class MolterCommand:
-    extension: typing.Any = attrs.field(default=None)
+    extension: typing.Optional["MolterExtension"] = attrs.field(default=None)
     "The extension this command belongs to."
     enabled: bool = attrs.field(default=True)
     "Whether this can be run at all."

@@ -7,6 +7,7 @@ import typing
 import interactions
 
 if typing.TYPE_CHECKING:
+    from .base import MolterExtension
     from .command import MolterCommand
 
 __all__ = (
@@ -46,7 +47,7 @@ def _qualname_wrap(callback: typing.Callable):
         return functools.partial(callback, None)
 
 
-def _wrap_recursive(cmd: "MolterCommand", ext: interactions.Extension):
+def _wrap_recursive(cmd: "MolterCommand", ext: "MolterExtension"):
     cmd.extension = ext
     cmd.callback = functools.partial(cmd.callback, ext)
 
