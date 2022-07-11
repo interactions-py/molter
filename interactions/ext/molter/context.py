@@ -32,19 +32,15 @@ class MolterContext:
     """The bot instance."""
     message: interactions.Message = attrs.field()
     """The message this represents."""
+    channel: interactions.Channel = attrs.field()
+    """The channel this message was sent through."""
     user: interactions.User = attrs.field()
     """The user who sent the message."""
+
     member: _typing.Optional[interactions.Member] = attrs.field(default=None)
     """The guild member who sent the message, if applicable."""
-
-    channel: _typing.Optional[interactions.Channel] = attrs.field(default=None)
-    """The channel this message was sent through, if applicable.
-    Will be `None` if `Molter.fetch_data_for_context` is False
-    unless `MolterContext.get_channel` is used."""
     guild: _typing.Optional[interactions.Guild] = attrs.field(default=None)
-    """The guild this message was sent through, if applicable.
-    Will be `None` if `Molter.fetch_data_for_context` is False
-    unless `MolterContext.get_guild` is used."""
+    """The guild this message was sent through, if applicable."""
 
     invoked_name: str = attrs.field(init=False, default=None)
     """The name/alias used to invoke the command."""
@@ -127,25 +123,6 @@ class MolterContext:
         """Returns the HTTP client the client has."""
         return self.client._http
 
-    async def get_channel(self) -> interactions.Channel:
-        """Gets the channel where the message was sent."""
-        if self.channel:
-            return self.channel
-
-        self.channel = await self.message.get_channel()
-        return self.channel
-
-    async def get_guild(self) -> _typing.Optional[interactions.Guild]:
-        """Gets the guild where the message was sent, if applicable."""
-        if self.guild:
-            return self.guild
-
-        if not self.guild_id:
-            return None
-
-        self.guild = await self.message.get_guild()
-        return self.guild
-
     async def compute_guild_permissions(self) -> interactions.Permissions:
         """
         Computes the guild (role-only) permissions for the member that sent the message.
@@ -167,18 +144,18 @@ class MolterContext:
         if not self.member:
             raise ValueError("This context doesn't have a member!")
 
-        guild = await self.get_guild()
-
-        if not guild:
+        if not self.guild:
             raise ValueError("This context doesn't have a guild!")
 
-        if int(self.user.id) == guild.owner_id:
+        if int(self.user.id) == self.guild.owner_id:
             self._guild_permissions = ALL_PERMISSIONS
             return ALL_PERMISSIONS
 
-        roles = await guild.get_all_roles()
+        roles = (
+            await self.guild.get_all_roles()
+        )  # sadly, has to be done to guarantee accurate info
 
-        role_everyone = next(r for r in roles if r.id == guild.id)
+        role_everyone = next(r for r in roles if r.id == self.guild_id)
         permissions = interactions.Permissions(int(role_everyone.permissions))
 
         if self.member.roles:
@@ -216,11 +193,9 @@ class MolterContext:
         if not self.guild_id:
             raise ValueError("This context doesn't have a guild!")
 
-        channel = await self.get_channel()
-
         permissions = base_permissions
 
-        if overwrites := channel.permission_overwrites:
+        if overwrites := self.channel.permission_overwrites:
             if overwrite_everyone := next(
                 (o for o in overwrites if o.id == int(self.guild_id)), None
             ):
@@ -444,6 +419,9 @@ class HybridContext(MolterContext):
     """The bot instance. This will not appear for slash command versions."""
     message: _typing.Optional[interactions.Message] = attrs.field(default=None)
     """The message this represents."""
+
+    channel: _typing.Optional[interactions.Channel] = attrs.field(default=None)
+    """The channel this message was sent through, if applicable."""
 
     command_context: _typing.Optional[interactions.CommandContext] = attrs.field(
         default=None

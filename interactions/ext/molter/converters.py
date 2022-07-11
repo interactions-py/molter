@@ -119,6 +119,8 @@ class MemberConverter(IDConverter[interactions.Member]):
                 None,
             )
 
+        if result is not None:
+            return interactions.Member(**result)
         return result
 
     async def convert(self, ctx: MolterContext, argument: str) -> interactions.Member:
@@ -131,11 +133,8 @@ class MemberConverter(IDConverter[interactions.Member]):
         result = None
 
         if match:
-            result = await _wrap_lib_exception(
-                ctx._http.get_member(
-                    guild_id=int(ctx.guild_id),
-                    member_id=int(match.group(1)),
-                )
+            result = ctx._http.cache[interactions.Member].get(
+                (ctx.guild_id, interactions.Snowflake(match.group(1)))
             )
         else:
             query = argument
@@ -153,7 +152,8 @@ class MemberConverter(IDConverter[interactions.Member]):
         if not result:
             raise errors.BadArgument(f'Member "{argument}" not found.')
 
-        return interactions.Member(**result, _client=ctx._http)  # type: ignore
+        result._client = ctx._http
+        return result
 
 
 class UserConverter(IDConverter[interactions.User]):
@@ -166,20 +166,30 @@ class UserConverter(IDConverter[interactions.User]):
 
         if match:
             result = await _wrap_lib_exception(ctx._http.get_user(int(match.group(1))))
+            if result is not None:
+                result = interactions.User(**result)
         else:
-            # sadly, ids are the only viable way of getting
-            # accurate user objects in a reasonable manner
-            # if we did names, we would have to use the cache, which
-            # doesnt update on username changes or anything,
-            # and so may have the wrong name
-            # erroring out is better than wrong data to me
-            # though its easy enough subclassing this to change that
-            pass
+            all_cached_users = ctx._http.cache[interactions.User].values.values()
+            if len(argument) > 5 and argument[-5] == "#":
+                result = next(
+                    (
+                        u
+                        for u in all_cached_users
+                        if f"{u.username}#{u.discriminator}" == argument
+                    ),
+                    None,
+                )
+
+            if not result:
+                result = next(
+                    (u for u in all_cached_users if u.username == argument), None
+                )
 
         if not result:
             raise errors.BadArgument(f'User "{argument}" not found.')
 
-        return interactions.User(**result)
+        result._client = ctx._http
+        return result
 
 
 class ChannelConverter(IDConverter[interactions.Channel]):
@@ -192,27 +202,30 @@ class ChannelConverter(IDConverter[interactions.Channel]):
         result = None
 
         if match:
-            result = await _wrap_lib_exception(
-                ctx._http.get_channel(int(match.group(1)))
+            result = ctx._http.cache[interactions.Channel].get(
+                interactions.Snowflake(match.group(1))
             )
         elif ctx.guild_id:
-            raw_channels = await _wrap_lib_exception(
-                ctx._http.get_all_channels(int(ctx.guild_id))
+            # why not use the guild directly? the guild doesn't update its channel list yet
+            guild_channels = [
+                c
+                for c in ctx._http.cache[interactions.Channel].values.values()
+                if c.guild_id == ctx.guild_id
+            ]
+            result = next(
+                (
+                    c
+                    for c in guild_channels
+                    if c.name == utils.remove_prefix(argument, "#")
+                ),
+                None,
             )
-            if raw_channels:
-                result = next(
-                    (
-                        c
-                        for c in raw_channels
-                        if c.get("name") == utils.remove_prefix(argument, "#")
-                    ),
-                    None,
-                )
 
         if not result:
             raise errors.BadArgument(f'Channel "{argument}" not found.')
 
-        return interactions.Channel(**result, _client=ctx._http)  # type: ignore
+        result._client = ctx._http
+        return result
 
 
 class RoleConverter(IDConverter[interactions.Role]):
@@ -224,12 +237,14 @@ class RoleConverter(IDConverter[interactions.Role]):
         if not ctx.guild_id:
             raise errors.BadArgument("This command cannot be used in private messages.")
 
+        # while i'd like to use the cache here, roles don't store info about which guild they come
+        # from, and the guild doesn't update its role list
+
         raw_roles = await ctx._http.get_all_roles(int(ctx.guild_id))
         match = self._get_id_match(argument) or re.match(r"<@&([0-9]{15,})>$", argument)
         result = None
 
         if match:
-            # this is faster than using get_role and is also accurate
             result = next((r for r in raw_roles if r["id"] == match.group(1)), None)
         else:
             result = next(
@@ -245,23 +260,18 @@ class RoleConverter(IDConverter[interactions.Role]):
 
 class GuildConverter(IDConverter[interactions.Guild]):
     async def convert(self, ctx: MolterContext, argument: str) -> interactions.Guild:
-        match = self._get_id_match(argument)
-        guild_id: typing.Optional[int] = None
-
-        if match:
-            guild_id = int(match.group(1))
+        if match := self._get_id_match(argument):
+            result = ctx._http.cache[interactions.Guild].get(
+                interactions.Snowflake(match.group(1))
+            )
         else:
-            # we can only use guild ids for the same reason we can only use user ids
-            # for the user converter
-            # there is an http endpoint to get all guilds a bot is in
-            # but if the bot has a ton of guilds, this would be too intensive
+            result = next((g for g in ctx.bot.guilds if g.name == argument), None)
+
+        if not result:
             raise errors.BadArgument(f'Guild "{argument}" not found.')
 
-        try:
-            guild_data = await ctx._http.get_guild(guild_id)
-            return interactions.Guild(**guild_data, _client=ctx._http)
-        except inter_errors.LibraryException:
-            raise errors.BadArgument(f'Guild "{argument}" not found.')
+        result._client = ctx._http
+        return result
 
 
 class MessageConverter(MolterConverter[interactions.Message]):
@@ -294,16 +304,38 @@ class MessageConverter(MolterConverter[interactions.Message]):
         guild_id = data["guild_id"] if data.get("guild_id") else ctx.guild_id
         guild_id = str(guild_id) if guild_id != "@me" else None
 
+        if cached_message := ctx._http.cache[interactions.Message].get(
+            interactions.Snowflake(message_id)
+        ):
+            if int(cached_message.channel_id) == channel_id and (
+                cached_message.guild_id == guild_id
+                or str(cached_message.guild_id == guild_id)
+            ):
+                return cached_message
+            else:
+                raise errors.BadArgument(f'Message "{argument}" not found.')
+
         try:
             message_data: dict = await ctx._http.get_message(channel_id, message_id)  # type: ignore
 
             msg_guild_id: typing.Optional[str] = message_data.get("guild_id")
             if not msg_guild_id:
-                # because discord is inconsistent with providing the guild id key for
-                # messages, we have to do a request to get the channel's guild id
-                # this does mean we have to waste a request, but oh well
-                channel_data = await ctx._http.get_channel(channel_id)
-                msg_guild_id = message_data["guild_id"] = channel_data.get("guild_id")
+                if channel := ctx._http.cache[interactions.Channel].get(
+                    interactions.Snowflake(channel_id)
+                ):
+                    msg_guild_id = message_data["guild_id"] = (
+                        str(channel.guild_id) if channel.guild_id else None
+                    )
+                else:
+                    channel_data = await _wrap_lib_exception(
+                        ctx._http.get_channel(channel_id)
+                    )
+                    if channel_data:
+                        msg_guild_id = message_data["guild_id"] = channel_data.get(
+                            "guild_id"
+                        )
+                    else:
+                        raise errors.BadArgument(f'Message "{argument}" not found.')
 
             if msg_guild_id != guild_id:
                 raise errors.BadArgument(f'Message "{argument}" not found.')

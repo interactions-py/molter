@@ -110,11 +110,6 @@ class Molter:
         generate_prefixes (`typing.Callable`, optional): An asynchronous function \
             that takes in a `Client` and `Message` object and returns either a \
             string or an iterable of strings. Defaults to None.
-        fetch_data_for_context (`bool`): If molter should attempt to fetch extra \
-            data, like the `Guild` and `Channel` where the message was sent. \
-            Turning this on may make the bot respond slower or faster depending on \
-            the converters used in the command, but usually is slower. \
-            Defaults to False.
         on_molter_command_error (`typing.Callable`, optional): An asynchronous function \
             that takes in a `MolterContext` and `Exception` to handle errors that occur \
             when running molter commands. By default, molter will output the error to \
@@ -137,7 +132,6 @@ class Molter:
                 ],
             ]
         ] = None,
-        fetch_data_for_context: bool = False,
         on_molter_command_error: typing.Optional[
             typing.Callable[[MolterContext, Exception], typing.Coroutine]
         ] = None,
@@ -148,7 +142,6 @@ class Molter:
 
         self.client = client
         self.default_prefix = default_prefix
-        self.fetch_data_for_context = fetch_data_for_context
         self.prefixed_commands: typing.Dict[str, MolterCommand] = {}
 
         if default_prefix is None and generate_prefixes is None:
@@ -392,16 +385,18 @@ class Molter:
             `MolterContext`: The context generated.
         """
         # weirdly enough, sometimes this isn't set right
-        msg._client = self.client._http
+        http = self.client._http
+        msg._client = http
+        cache = http.cache
 
-        channel = None
-        guild = None
+        if msg.guild_id:
+            guild = cache[interactions.Guild].get(msg.guild_id) or await msg.get_guild()
+        else:
+            guild = None
 
-        if self.fetch_data_for_context:
-            # get from cache if possible
+        channel = cache[interactions.Channel].get(msg.channel_id)
+        if not channel:
             channel = await msg.get_channel()
-            if msg.guild_id:
-                guild = await msg.get_guild()
 
         return MolterContext(  # type: ignore
             client=self.client,
@@ -543,11 +538,6 @@ def setup(
         generate_prefixes (`typing.Callable`, optional): An asynchronous function \
             that takes in a `Client` and `Message` object and returns either a \
             string or an iterable of strings. Defaults to None.
-        fetch_data_for_context (`bool`): If molter should attempt to fetch extra \
-            data, like the `Guild` and `Channel` where the message was sent. \
-            Turning this on may make the bot respond slower or faster depending on \
-            the converters used in the command, but usually is slower. \
-            Defaults to False.
         on_molter_command_error (`typing.Callable`, optional): An asynchronous function \
             that takes in a `MolterContext` and `Exception` to handle errors that occur \
             when running molter commands. By default, molter will output the error to \
@@ -564,6 +554,5 @@ def setup(
         client,
         default_prefix,
         generate_prefixes,
-        fetch_data_for_context,
         on_molter_command_error,
     )
