@@ -441,8 +441,6 @@ class MolterCommand:
     """If `True` and if the base of a subcommand, every subcommand underneath
     it will run this command's checks and cooldowns before its own. Otherwise,
     only the subcommand's checks are checked."""
-    hybrid: bool = attrs.field(default=False)
-    """Is this command a hybrid command or not?"""
 
     help: typing.Optional[str] = attrs.field(default=None)
     """The long help text for the command."""
