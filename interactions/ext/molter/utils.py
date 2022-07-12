@@ -51,6 +51,9 @@ def _wrap_recursive(cmd: "MolterCommand", ext: "MolterExtension"):
     cmd.extension = ext
     cmd.callback = functools.partial(cmd.callback, ext)
 
+    if cmd.error_callback:
+        cmd.error_callback = functools.partial(cmd.error_callback, ext)
+
     for subcommand in cmd.all_commands:
         new_sub = _wrap_recursive(subcommand, ext)
 
