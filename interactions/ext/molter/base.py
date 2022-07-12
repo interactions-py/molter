@@ -396,7 +396,7 @@ class Molter:
                         await command._run_checks(context)
                     except Exception as e:
                         if command.error_callback:
-                            await command.error_callback(context, e)
+                            await command.error_callback(context, e)  # type: ignore
                         elif command.extension and command.extension._error_callback:
                             await command.extension._error_callback(context, e)
                         else:
@@ -424,7 +424,7 @@ class Molter:
                     await command(context)
                 except Exception as e:
                     if command.error_callback:
-                        await command.error_callback(context, e)
+                        await command.error_callback(context, e)  # type: ignore
                     elif command.extension and command.extension._error_callback:
                         await command.extension._error_callback(context, e)
                     else:

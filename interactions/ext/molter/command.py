@@ -42,6 +42,18 @@ except ImportError:  # 3.8-3.9
 # thankfully, modules are singletons
 _global_type_to_converter = dict(converters.INTER_OBJECT_TO_CONVERTER)
 
+ERROR_HANDLER = typing.Callable[
+    [context.MolterContext, Exception], typing.Awaitable[typing.Any]
+]
+EXT_ERROR_HANDLER = typing.Callable[
+    [typing.Any, context.MolterContext, Exception], typing.Awaitable[typing.Any]
+]
+# for some reason, typing an ext here doesn't work, so oh well
+ERROR_HANDLER_FUNCTION = typing.Union[ERROR_HANDLER, EXT_ERROR_HANDLER]
+
+EEH = typing.TypeVar("EEH", bound=EXT_ERROR_HANDLER)
+EHF = typing.TypeVar("EHF", bound=ERROR_HANDLER_FUNCTION)
+
 
 @attrs.define(slots=True)
 class PrefixedCommandParameter:
@@ -465,9 +477,7 @@ class MolterCommand:
         ]
     ] = attrs.field(factory=list)
     """A list of checks for this command."""
-    error_callback: typing.Optional[
-        typing.Callable[[context.MolterContext, Exception], typing.Coroutine]
-    ] = attrs.field(default=None)
+    error_callback: typing.Optional[ERROR_HANDLER_FUNCTION] = attrs.field(default=None)
     """The callback to use if an error occurs."""
 
     _usage: typing.Optional[str] = attrs.field(default=None, repr=False)
@@ -669,32 +679,34 @@ class MolterCommand:
 
         return cmd
 
+    @typing.overload
+    def error(self) -> typing.Callable[[EHF], EHF]:
+        ...
+
+    @typing.overload
+    def error(self, error_callback: EHF) -> EHF:
+        ...
+
     def error(
         self,
-        error_callback: typing.Optional[
-            typing.Callable[[context.MolterContext, Exception], typing.Coroutine]
-        ] = None,
-    ):
+        error_callback: typing.Optional[EHF] = None,
+    ) -> typing.Union[typing.Callable[[EHF], EHF], EHF]:
         """
         A decorator to register an error callback for a command.
 
         Args:
-            error_callback (Callable[[MolterContext, Exception], Coroutine]]):
+            error_callback (`Callable`):
             The error callback to register. It must be an asynchronous function that
             takes in MolterContext and an exception.
         """
 
-        def decorator(
-            error_callback: typing.Callable[
-                [context.MolterContext, Exception], typing.Coroutine
-            ]
-        ):
+        def decorator(error_callback: EHF):
             self.error_callback = error_callback
             return error_callback
 
         if error_callback is not None:
             self.error_callback = error_callback
-            return error_callback
+            return error_callback  # type: ignore
 
         return decorator
 
@@ -1050,25 +1062,29 @@ def globally_register_converter(
     _global_type_to_converter.update({anno_type: converter})
 
 
+@typing.overload
+def ext_error_handler() -> typing.Callable[[EEH], EEH]:
+    ...
+
+
+@typing.overload
+def ext_error_handler(error_callback: EEH) -> EEH:
+    ...
+
+
 def ext_error_handler(
-    error_callback: typing.Optional[
-        typing.Callable[[context.MolterContext, Exception], typing.Coroutine]
-    ] = None
-):
+    error_callback: typing.Optional[EEH] = None,
+) -> typing.Union[typing.Callable[[EEH], EEH], EEH]:
     """
     A decorator to register an error callback for a MolterExtension.
 
     Args:
-        error_callback (Callable[[MolterContext, Exception], Coroutine]]):
+        error_callback (`Callable`):
         The error callback to register. It must be an asynchronous function that
-        takes in MolterContext and an exception.
+        takes in `self`, MolterContext and an exception.
     """
 
-    def decorator(
-        error_callback: typing.Callable[
-            [context.MolterContext, Exception], typing.Coroutine
-        ]
-    ):
+    def decorator(error_callback: EEH):
         error_callback.__ext_molter_error__ = True
         return error_callback
 
