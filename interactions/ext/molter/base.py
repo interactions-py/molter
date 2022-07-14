@@ -58,10 +58,8 @@ class MolterExtensionMixin:
     interactions.py's extensions. Simply use it like so:
 
     ```python
-    class MyExt(
-        MolterExtensionMixin,
-        Extension
-    )
+    class MyExt(MolterExtensionMixin, Extension):
+        ...
     ```
     """
 
