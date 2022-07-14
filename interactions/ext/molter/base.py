@@ -71,9 +71,7 @@ class MolterExtensionMixin:
     ] = None
     _molter_prefixed_commands: typing.List[MolterCommand]
 
-    def __new__(
-        cls, client: interactions.Client, *args, **kwargs
-    ):
+    def __new__(cls, client: interactions.Client, *args, **kwargs):
         self = super().__new__(cls, client, *args, **kwargs)  # type: ignore
         self._molter_prefixed_commands = []
 
@@ -122,6 +120,7 @@ class MolterExtensionMixin:
 
 class MolterExtension(MolterExtensionMixin, interactions.Extension):
     """An extension that allows you to use molter commands in them."""
+
     pass
 
 
