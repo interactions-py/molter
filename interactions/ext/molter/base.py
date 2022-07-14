@@ -14,6 +14,7 @@ __all__ = (
     "__version__",
     "base",
     "MolterInjectedClient",
+    "MolterExtensionMixin",
     "MolterExtension",
     "Molter",
     "setup",
@@ -51,8 +52,18 @@ class MolterInjectedClient(interactions.Client):
     molter: "Molter"
 
 
-class MolterExtension(interactions.Extension):
-    """An extension that allows you to use molter commands in them."""
+class MolterExtensionMixin:
+    """
+    A mixin that can be used to add molter functionality into any subclass of
+    interactions.py's extensions. Simply use it like so:
+
+    ```python
+    class MyExt(
+        MolterExtensionMixin,
+        Extension
+    )
+    ```
+    """
 
     client: interactions.Client
     _error_callback: typing.Optional[
@@ -62,8 +73,8 @@ class MolterExtension(interactions.Extension):
 
     def __new__(
         cls, client: interactions.Client, *args, **kwargs
-    ) -> "interactions.Extension":
-        self: "MolterExtension" = super().__new__(cls, client, *args, **kwargs)  # type: ignore
+    ):
+        self = super().__new__(cls, client, *args, **kwargs)  # type: ignore
         self._molter_prefixed_commands = []
 
         # typehinting funkyness for better typehints
@@ -106,7 +117,12 @@ class MolterExtension(interactions.Extension):
             for name in names_to_remove:
                 self.client.molter.prefixed_commands.pop(name, None)
 
-        return await super().teardown(*args, **kwargs)
+        return await super().teardown(*args, **kwargs)  # type: ignore
+
+
+class MolterExtension(MolterExtensionMixin, interactions.Extension):
+    """An extension that allows you to use molter commands in them."""
+    pass
 
 
 class Molter:
