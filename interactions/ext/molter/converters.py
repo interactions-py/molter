@@ -6,6 +6,7 @@ import interactions.api.error as inter_errors
 from . import errors
 from . import utils
 from .context import MolterContext
+from .utils import _wrap_lib_exception
 
 __all__ = (
     "MolterConverter",
@@ -25,13 +26,6 @@ __all__ = (
 
 T = typing.TypeVar("T")
 T_co = typing.TypeVar("T_co", covariant=True)
-
-
-async def _wrap_lib_exception(function: typing.Awaitable[T]) -> typing.Optional[T]:
-    try:
-        return await function
-    except inter_errors.LibraryException:
-        return None
 
 
 @typing.runtime_checkable

@@ -5,6 +5,7 @@ import re
 import typing
 
 import interactions
+import interactions.api.error as inter_errors
 
 if typing.TYPE_CHECKING:
     from .base import MolterExtension
@@ -32,6 +33,16 @@ __all__ = (
 
 SnowflakeType = typing.Union[interactions.Snowflake, int, str]
 OptionalSnowflakeType = typing.Optional[SnowflakeType]
+
+
+T = typing.TypeVar("T")
+
+
+async def _wrap_lib_exception(function: typing.Awaitable[T]) -> typing.Optional[T]:
+    try:
+        return await function
+    except inter_errors.LibraryException:
+        return None
 
 
 def _qualname_self_check(callback: typing.Callable):

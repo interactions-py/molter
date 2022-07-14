@@ -340,18 +340,20 @@ class Molter:
             `MolterContext`: The context generated.
         """
         # weirdly enough, sometimes this isn't set right
-        http = self.client._http
-        msg._client = http
-        cache = http.cache
+        msg._client = self.client._http
 
         if msg.guild_id:
-            guild = cache[interactions.Guild].get(msg.guild_id) or await msg.get_guild()
+            guild = await utils._wrap_lib_exception(
+                interactions.get(
+                    self.client, interactions.Guild, object_id=int(msg.guild_id)
+                )
+            )
         else:
             guild = None
 
-        channel = cache[interactions.Channel].get(msg.channel_id)
-        if not channel:
-            channel = await msg.get_channel()
+        channel = await interactions.get(
+            self.client, interactions.Channel, object_id=int(msg.channel_id)
+        )
 
         return MolterContext(  # type: ignore
             client=self.client,
