@@ -388,9 +388,7 @@ class Molter:
             context = await self._create_context(msg)
             context.prefix = prefix_used
             context.content_parameters = utils.remove_prefix(msg.content, prefix_used)
-            command: typing.Optional[
-                typing.Union[Molter, MolterCommand]
-            ] = self.client.molter
+            command = self.client.molter
 
             while True:
                 first_word: str = utils.get_first_word(context.content_parameters)  # type: ignore
