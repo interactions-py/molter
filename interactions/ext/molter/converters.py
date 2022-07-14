@@ -27,9 +27,7 @@ T = typing.TypeVar("T")
 T_co = typing.TypeVar("T_co", covariant=True)
 
 
-async def _wrap_lib_exception(
-    function: typing.Coroutine[typing.Any, typing.Any, T]
-) -> typing.Optional[T]:
+async def _wrap_lib_exception(function: typing.Awaitable[T]) -> typing.Optional[T]:
     try:
         return await function
     except inter_errors.LibraryException:
@@ -124,7 +122,7 @@ class MemberConverter(IDConverter[interactions.Member]):
         return result
 
     async def convert(self, ctx: MolterContext, argument: str) -> interactions.Member:
-        if not ctx.guild_id:
+        if not ctx.guild or not ctx.guild_id:
             raise errors.BadArgument("This command cannot be used in private messages.")
 
         match = self._get_id_match(argument) or re.match(
@@ -133,21 +131,41 @@ class MemberConverter(IDConverter[interactions.Member]):
         result = None
 
         if match:
-            result = ctx._http.cache[interactions.Member].get(
-                (ctx.guild_id, interactions.Snowflake(match.group(1)))
+            result = await _wrap_lib_exception(
+                interactions.get(
+                    ctx.client,
+                    interactions.Member,
+                    parent_id=int(ctx.guild_id),
+                    object_id=int(match.group(1)),
+                )
             )
         else:
             query = argument
-            if len(argument) > 5 and argument[-5] == "#":
-                query, _, _ = argument.rpartition("#")
 
-            members_data = await _wrap_lib_exception(
-                ctx._http.search_guild_members(int(ctx.guild_id), query, limit=5)
-            )
-            if not members_data:
-                raise errors.BadArgument(f'Member "{argument}" not found.')
+            if ctx.guild.members:
+                for member in ctx.guild.members:
+                    if member.name == query or (
+                        member.user
+                        and (
+                            member.user.username == query
+                            or f"{member.user.username}#{member.user.discriminator}"
+                            == query
+                        )
+                    ):
+                        result = member
+                        break
+            else:
+                if len(argument) > 5 and argument[-5] == "#":
+                    query, _, _ = argument.rpartition("#")
 
-            result = self._get_member_from_list(members_data, argument)
+                members_data = await _wrap_lib_exception(
+                    ctx._http.search_guild_members(int(ctx.guild_id), query, limit=5)
+                )
+
+                if not members_data:
+                    raise errors.BadArgument(f'Member "{argument}" not found.')
+
+                result = self._get_member_from_list(members_data, argument)
 
         if not result:
             raise errors.BadArgument(f'Member "{argument}" not found.')
@@ -165,9 +183,11 @@ class UserConverter(IDConverter[interactions.User]):
         result = None
 
         if match:
-            result = await _wrap_lib_exception(ctx._http.get_user(int(match.group(1))))
-            if result is not None:
-                result = interactions.User(**result)
+            result = await _wrap_lib_exception(
+                interactions.get(
+                    ctx.client, interactions.User, object_id=int(match.group(1))
+                )
+            )
         else:
             all_cached_users = ctx._http.cache[interactions.User].values.values()
             if len(argument) > 5 and argument[-5] == "#":
@@ -202,20 +222,16 @@ class ChannelConverter(IDConverter[interactions.Channel]):
         result = None
 
         if match:
-            result = ctx._http.cache[interactions.Channel].get(
-                interactions.Snowflake(match.group(1))
+            result = await _wrap_lib_exception(
+                interactions.get(
+                    ctx.client, interactions.Channel, object_id=int(match.group(1))
+                )
             )
-        elif ctx.guild_id:
-            # why not use the guild directly? the guild doesn't update its channel list yet
-            guild_channels = [
-                c
-                for c in ctx._http.cache[interactions.Channel].values.values()
-                if c.guild_id == ctx.guild_id
-            ]
+        elif ctx.guild and ctx.guild.channels:
             result = next(
                 (
                     c
-                    for c in guild_channels
+                    for c in ctx.guild.channels
                     if c.name == utils.remove_prefix(argument, "#")
                 ),
                 None,
@@ -234,21 +250,26 @@ class RoleConverter(IDConverter[interactions.Role]):
         ctx: MolterContext,
         argument: str,
     ) -> interactions.Role:
-        if not ctx.guild_id:
+        if not ctx.guild_id or not ctx.guild:
             raise errors.BadArgument("This command cannot be used in private messages.")
 
         # while i'd like to use the cache here, roles don't store info about which guild they come
         # from, and the guild doesn't update its role list
-
-        raw_roles = await ctx._http.get_all_roles(int(ctx.guild_id))
         match = self._get_id_match(argument) or re.match(r"<@&([0-9]{15,})>$", argument)
         result = None
 
         if match:
-            result = next((r for r in raw_roles if r["id"] == match.group(1)), None)
+            result = await _wrap_lib_exception(
+                interactions.get(
+                    ctx.client,
+                    interactions.Role,
+                    parent_id=int(ctx.guild_id),
+                    object_id=int(match.group(1)),
+                )
+            )
         else:
             result = next(
-                (r for r in raw_roles if r["name"] == argument),
+                (r for r in ctx.guild.roles if r.name == argument),
                 None,
             )
 
@@ -261,8 +282,10 @@ class RoleConverter(IDConverter[interactions.Role]):
 class GuildConverter(IDConverter[interactions.Guild]):
     async def convert(self, ctx: MolterContext, argument: str) -> interactions.Guild:
         if match := self._get_id_match(argument):
-            result = ctx._http.cache[interactions.Guild].get(
-                interactions.Snowflake(match.group(1))
+            result = await _wrap_lib_exception(
+                interactions.get(
+                    ctx.client, interactions.Guild, object_id=int(match.group(1))
+                )
             )
         else:
             result = next((g for g in ctx.bot.guilds if g.name == argument), None)
