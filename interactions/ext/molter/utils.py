@@ -14,6 +14,7 @@ if typing.TYPE_CHECKING:
 __all__ = (
     "SnowflakeType",
     "OptionalSnowflakeType",
+    "ALL_PERMISSIONS",
     "remove_prefix",
     "remove_suffix",
     "when_mentioned",
@@ -24,6 +25,8 @@ __all__ = (
     "get_args_from_str",
     "get_first_word",
     "escape_mentions",
+    "guild_permissions",
+    "permissions",
     "Typing",
     "DeferredTyping",
 )
@@ -36,6 +39,11 @@ OptionalSnowflakeType = typing.Optional[SnowflakeType]
 
 
 T = typing.TypeVar("T")
+
+ALL_PERMISSIONS = interactions.Permissions(0)
+
+for perm in interactions.Permissions:
+    ALL_PERMISSIONS |= perm
 
 
 async def _wrap_lib_exception(function: typing.Awaitable[T]) -> typing.Optional[T]:
@@ -213,6 +221,112 @@ def escape_mentions(content: str) -> str:
         The escaped string.
     """
     return MENTION_REGEX.sub("@\u200b\\1", content)
+
+
+def guild_permissions(
+    member: interactions.Member, guild: interactions.Guild
+) -> interactions.Permissions:
+    """
+    Computes the guild (role-only) permissions for a member.
+    This factors in ownership and the roles of the member.
+    This does not take into account "inherent" permissions.
+
+    This uses the pseudocode featured in Discord's own documentation about
+    permission overwrites as a base.
+
+    Returns:
+        `interactions.Permissions`: The guild permissions for the member
+        that sent the message.
+    """
+
+    if int(member.id) == guild.owner_id:
+        return ALL_PERMISSIONS
+
+    roles = guild.roles
+
+    role_everyone = next(r for r in roles if r.id == guild.id)
+    permissions = interactions.Permissions(int(role_everyone.permissions))
+
+    if member.roles:
+        member_roles = [r for r in roles if int(r.id) in member.roles]
+    else:
+        member_roles = []
+
+    for role in member_roles:
+        permissions |= interactions.Permissions(int(role.permissions))
+
+    if (
+        permissions & interactions.Permissions.ADMINISTRATOR
+        == interactions.Permissions.ADMINISTRATOR
+    ):
+        return ALL_PERMISSIONS
+
+    return permissions
+
+
+def _compute_overwrites(
+    member: interactions.Member,
+    guild: interactions.Guild,
+    channel: interactions.Channel,
+    base_permissions: interactions.Permissions,
+):
+    """Calculates and adds in overwrites based on the guild permissions."""
+
+    permissions = base_permissions
+
+    if overwrites := channel.permission_overwrites:
+        if overwrite_everyone := next(
+            (o for o in overwrites if o.id == str(guild.id)), None
+        ):
+            permissions &= ~interactions.Permissions(int(overwrite_everyone.deny))
+            permissions |= interactions.Permissions(int(overwrite_everyone.allow))
+
+        allow = interactions.Permissions(0)
+        deny = interactions.Permissions(0)
+
+        for role_id in member.roles:
+            if overwrite_role := next(
+                (o for o in overwrites if o.id == str(role_id)), None
+            ):
+                allow |= interactions.Permissions(int(overwrite_role.allow))
+                deny |= interactions.Permissions(int(overwrite_role.deny))
+
+        permissions &= ~deny
+        permissions |= allow
+
+        if overwrite_member := next(
+            (o for o in overwrites if o.id == str(member.id)), None
+        ):
+            permissions &= ~interactions.Permissions(int(overwrite_member.deny))
+            permissions |= interactions.Permissions(int(overwrite_member.allow))
+
+    return permissions
+
+
+def permissions(
+    member: typing.Union[interactions.Member, interactions.User],
+    channel: interactions.Channel,
+    guild: typing.Optional[interactions.Guild],
+) -> interactions.Permissions:
+    """
+    Computes the permissions for the member specified.
+    This factors in ownership, roles, and channel overwrites.
+    This does not take into account "inherent" permissions.
+
+    This uses the pseudocode featured in Discord's own documentation about
+    permission overwrites as a base.
+
+    Returns:
+        `interactions.Permissions`: The permissions for the member
+        that sent the message.
+    """
+
+    if not guild or isinstance(member, interactions.User):
+        # basic text permissions, no tts, yes view channel
+        return interactions.Permissions(0b1111100110001000000)
+
+    base_permissions = guild_permissions(member, guild)  # type: ignore
+    return _compute_overwrites(member, guild, channel, base_permissions)  # type: ignore
 
 
 class Typing:
