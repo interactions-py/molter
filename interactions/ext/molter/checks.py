@@ -1,6 +1,7 @@
 import typing
 
 import interactions
+from . import utils
 from .command import MCT
 from .command import MolterCommand
 from .errors import CheckFailure
@@ -40,7 +41,7 @@ def has_permissions(
     *permissions: interactions.Permissions,
 ) -> typing.Callable[..., MCT]:
     """
-    A check to see if the member has permissions specified for the specific context.
+    A check to see if the author has permissions specified for the specific context.
     Considers guild ownership, roles, and channel overwrites.
     Works for DMs.
 
@@ -53,8 +54,7 @@ def has_permissions(
         combined_permissions |= perm
 
     async def _permission_check(ctx: "MolterContext"):
-        member_permissions = await ctx.compute_permissions()
-        result = combined_permissions in member_permissions
+        result = combined_permissions in ctx.author_permissions
 
         if not result:
             raise CheckFailure(
@@ -69,7 +69,7 @@ def has_guild_permissions(
     *permissions: interactions.Permissions,
 ) -> typing.Callable[..., MCT]:
     """
-    A check to see if the member has permissions specified for the guild.
+    A check to see if the author has permissions specified for the guild.
     Considers guild ownership and roles.
     Will fail in DMs.
 
@@ -82,8 +82,10 @@ def has_guild_permissions(
         combined_permissions |= perm
 
     async def _permission_check(ctx: "MolterContext"):
-        guild_permissions = await ctx.compute_guild_permissions()
-        result = combined_permissions in guild_permissions
+        if not ctx.guild or isinstance(ctx.author, interactions.User):
+            raise CheckFailure(ctx, "This command cannot be used in private messages.")
+
+        result = combined_permissions in utils.guild_permissions(ctx.author, ctx.guild)
 
         if not result:
             raise CheckFailure(
