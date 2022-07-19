@@ -229,7 +229,7 @@ def guild_permissions(
     """
     Computes the guild (role-only) permissions for a member.
     This factors in ownership and the roles of the member.
-    This does not take into account "inherent" permissions.
+    This does not take into account implicit permissions.
 
     This uses the pseudocode featured in Discord's own documentation about
     permission overwrites as a base.
@@ -311,7 +311,7 @@ def permissions(
     """
     Computes the permissions for the member specified.
     This factors in ownership, roles, and channel overwrites.
-    This does not take into account "inherent" permissions.
+    This does not take into account implicit permissions.
 
     This uses the pseudocode featured in Discord's own documentation about
     permission overwrites as a base.
