@@ -55,6 +55,12 @@ EEH = typing.TypeVar("EEH", bound=EXT_ERROR_HANDLER)
 EHF = typing.TypeVar("EHF", bound=ERROR_HANDLER_FUNCTION)
 
 
+class ParameterInfo(typing.TypedDict):
+    default: typing.Union[
+        typing.Callable[[context.MolterContext, str], typing.Any], typing.Any
+    ]
+
+
 @attrs.define(slots=True)
 class PrefixedCommandParameter:
     """
@@ -282,6 +288,7 @@ def _greedy_parse(greedy: converters.Greedy, param: inspect.Parameter):
 def _get_params(
     signature: inspect.Signature,
     type_to_converter: typing.Dict[type, typing.Type[converters.MolterConverter]],
+    parameter_info: typing.Dict[str, ParameterInfo],
 ):
     cmd_params: list[PrefixedCommandParameter] = []
 
@@ -296,12 +303,17 @@ def _get_params(
 
         cmd_param = PrefixedCommandParameter()
         cmd_param.name = name
-        cmd_param.default = (
-            param.default if param.default is not param.empty else interactions.MISSING
-        )
         cmd_param.kind = param.kind
-
         cmd_param.type = anno = param.annotation
+
+        if parameter_dict := parameter_info.get(name):
+            cmd_param.default = parameter_dict["default"]
+        else:
+            cmd_param.default = (
+                param.default
+                if param.default is not param.empty
+                else interactions.MISSING
+            )
 
         if typing_extensions.get_origin(anno) == converters.Greedy:
             anno, default = _greedy_parse(anno, param)
@@ -371,7 +383,11 @@ async def _convert(
     used_default = False
     if converted == interactions.MISSING:
         if param.optional:
-            converted = param.default
+            converted = (
+                await maybe_coroutine(param.default, ctx)
+                if inspect.isfunction(param.default)
+                else param.default
+            )
             used_default = True
         else:
             union_types = typing_extensions.get_args(param.type)
@@ -410,8 +426,12 @@ async def _greedy_convert(
             break
 
     if not greedy_args:
-        if param.default:
-            greedy_args = param.default  # im sorry, typehinters
+        if param.optional:
+            greedy_args = (
+                await maybe_coroutine(param.default, ctx)
+                if inspect.isfunction(param.default)
+                else param.default
+            )
         else:
             raise errors.BadArgument(
                 f"Failed to find any arguments for {repr(param.type)}."
@@ -495,7 +515,12 @@ class MolterCommand:
 
         # doing this here just so we don't run into any issues here with a value
         # not being there yet or something if we used defaults, idk
-        self.parameters = _get_params(self._signature, self._type_to_converter)
+        parameter_info: dict[str, ParameterInfo] = getattr(
+            self.callback, "_parameter_info", {}
+        )
+        self.parameters = _get_params(
+            self._signature, self._type_to_converter, parameter_info
+        )
 
         # we have to do this afterwards as these rely on the callback
         # and its own value, which is impossible to get with attrs
@@ -1060,6 +1085,65 @@ def globally_register_converter(
     # hate me, but i think it makes sense here
     global _global_type_to_converter
     _global_type_to_converter.update({anno_type: converter})
+
+
+def prefixed_parameter(
+    parameter_name: str,
+    *,
+    default: typing.Any = interactions.MISSING,
+    factory: typing.Optional[
+        typing.Callable[[context.MolterContext], typing.Any]
+    ] = None,
+) -> typing.Callable[..., MCT]:
+    """
+    A decorator that allows you to adjust a parameter in a prefixed comamnd.
+
+    Args:
+        parameter_name (`str`): The parameter in the command to edit.
+        default (`Any`, optional): The default value the parameter should have.
+        factory (`Callable[MolterContext]`, optional): A factory function to use
+        if no argument is provided for this parameter. The function can be asynchronous
+        or synchronous, and should take in solely a `MolterContext`.
+
+    Returns:
+        `Callable | MolterCommand`: Either the callback or the command.
+        If this is used after using the `molter.prefixed_command` decorator, it will be a command.
+        Otherwise, it will be a callback.
+    """
+
+    def wrapper(command: MCT) -> MCT:
+        parameter_info: ParameterInfo = {}  # type: ignore
+
+        if factory is not None and default is not interactions.MISSING:
+            raise ValueError("You cannot provide both a default and a factory.")
+        elif factory is None and default is interactions.MISSING:
+            raise ValueError("You must provide either a default or a factory.")
+
+        if factory is not None:
+            parameter_info["default"] = factory
+        elif default is not interactions.MISSING:
+            parameter_info["default"] = default
+
+        if not isinstance(command, MolterCommand):
+            if hasattr(command, "_parameters_info"):
+                command._parameter_info[parameter_name] = parameter_info  # type: ignore
+            else:
+                command._parameter_info = {parameter_name: parameter_info}  # type: ignore
+
+        if isinstance(command, MolterCommand):
+            if the_param := next(
+                (p for p in command.parameters if p.name == parameter_name), None
+            ):
+                if factory is not None or default is not interactions.MISSING:
+                    the_param.default = parameter_info["default"]
+            else:
+                raise ValueError(
+                    f'"{parameter_name}" is not a parameter in the command provided.'
+                )
+
+        return command
+
+    return wrapper
 
 
 @typing.overload
