@@ -64,7 +64,7 @@ class PrefixedCommandParameter:
 
     name: str = attrs.field(default=None)
     "The name of the parameter."
-    default: typing.Optional[typing.Any] = attrs.field(default=None)
+    default: typing.Any = attrs.field(default=interactions.MISSING)
     "The default value of the parameter."
     type: typing.Type = attrs.field(default=None)
     "The type of the parameter."
