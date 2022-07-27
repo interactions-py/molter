@@ -25,9 +25,8 @@ client = interactions.Client(
 # If neither of them are specified, molter will default to using the bot's mention
 # as the prefix.
 
-# There is also fetch_data_for_context - this will be talked more about in the
-# advanced example, though it is recommended to keep it off unless you really need
-# it.
+# There is also on_molter_command_error - this will be talked more about in the
+# advanced example.
 molt = molter.setup(client)
 
 

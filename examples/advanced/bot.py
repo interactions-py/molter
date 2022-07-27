@@ -36,16 +36,15 @@ async def generate_prefixes(bot: interactions.Client, msg: interactions.Message)
 # generate_prefixes automatically supercedes default_prefix if both are
 # provided.
 
-# As promised, fetch_data_for_context is a rather weird argument:
-# By default, MolterContext has its guild and channel arguments set to None
-# and you would have to get them via get_channel and get_guild.
-# This is done for speed purposes - to provide those two arguments,
-# we need to fetch the channel and guild from Discord's API due to how
-# interactions.py works, taking up time and generally being somewhat slow.
-# However, if you are okay with that slowdown and want those two anyways without
-# fetching it yourself, you can pass fetch_data_for_context=True to do so.
+# As promised, on_molter_command_error is a rather weird argument:
+# By default, molter will output errors to the standard output
+# (your console, unless you hook onto molter's logger).
+# However, if you want to change that, you can do so here by providing
+# a function that takes in a MolterContext and an Exception.
+# This isn't demonstrated here, though.
 molt = molter.setup(
-    client, generate_prefixes=generate_prefixes, fetch_data_for_context=True
+    client,
+    generate_prefixes=generate_prefixes,
 )
 
 
