@@ -95,6 +95,17 @@ class Extension(molter.MolterExtension):
         else:
             await ctx.reply("Hey, there's no integer here!")
 
+    # Here's a fun example of using a function (or, well, a factory) as a default.
+    # Due to typehinting reasons, this should be done through the "prefixed_parameter"
+    # decorator, which allows you to specify a default or a factory for a parameter.
+    # The factory should be a function that takes in a MolterContext and returns... well,
+    # whatever you want.
+    # Here, we simply return the user who sent the message if the user didn't specify anyone.
+    @molter.prefixed_command()
+    @molter.prefixed_parameter("user", factory=lambda ctx: ctx.user)
+    async def optional_user(self, ctx: molter.MolterContext, user: interactions.User):
+        await ctx.send(user.mention)
+
     # And a quick example of Greedy.
     # To put it simply, Greedy will convert every new argument passed to it until it can't
     # anymore - for example, "!greedy_example 1124 124 23 e" would convert until the "e",
