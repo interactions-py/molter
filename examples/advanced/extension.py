@@ -1,5 +1,6 @@
 import datetime
 from typing import Optional
+from typing import Union
 
 from typing_extensions import Annotated
 
@@ -105,6 +106,18 @@ class Extension(molter.MolterExtension):
     @molter.prefixed_parameter("user", factory=lambda ctx: ctx.user)
     async def optional_user(self, ctx: molter.MolterContext, user: interactions.User):
         await ctx.send(user.mention)
+
+    # Right, how could we forget Unions!
+    # This allows you to have a parameter that could be of multiple types instead of one.
+    # In this example, we allow the user to either specify a channel or a user.
+    # Note that it MUST be one of either - otherwise, molter will error out as usual.
+    @molter.prefixed_command()
+    async def channel_or_user(
+        self,
+        ctx: molter.MolterContext,
+        c_or_u: Union[interactions.Channel, interactions.User],
+    ):
+        await ctx.send(c_or_u.mention)
 
     # And a quick example of Greedy.
     # To put it simply, Greedy will convert every new argument passed to it until it can't
