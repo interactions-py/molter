@@ -45,7 +45,7 @@ client = interactions.Client(
     token="TOKEN",
     intents=interactions.Intents.DEFAULT | interactions.Intents.GUILD_MESSAGE_CONTENT,
 )
-# See examples for more information.
+# See examples folder for more information.
 # molt = molter.setup(client, default_prefix="!")
 molt = molter.setup(client)
 
