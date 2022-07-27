@@ -918,13 +918,19 @@ class MolterCommand:
                             f"{param.name} is a required argument that is missing."
                         )
                     else:
+                        default = (
+                            await maybe_coroutine(param.default, ctx)
+                            if inspect.isfunction(param.default)
+                            else param.default
+                        )
+
                         if param.kind in {
                             inspect.Parameter.POSITIONAL_ONLY,
                             inspect.Parameter.VAR_POSITIONAL,
                         }:
-                            new_args.append(param.default)
+                            new_args.append(default)
                         else:
-                            kwargs[param.name] = param.default
+                            kwargs[param.name] = default
                             break
             elif not self.ignore_extra and not args.finished:
                 raise errors.BadArgument(f"Too many arguments passed to {self.name}.")
