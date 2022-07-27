@@ -29,7 +29,11 @@ This attempts to make the prefixed command experience much like `discord.py`'s p
 pip install interactions-molter
 ```
 
-## Example
+## Examples
+
+### Note
+
+There are more in-depth examples about how `molter` works in the [`examples`](https://github.com/interactions-py/molter/tree/main/examples) folder in this repository. These can be considered the documentation for this extension as of right now, so please take a look at them!
 
 ### Standalone
 
@@ -41,6 +45,8 @@ client = interactions.Client(
     token="TOKEN",
     intents=interactions.Intents.DEFAULT | interactions.Intents.GUILD_MESSAGE_CONTENT,
 )
+# See examples for more information.
+# molt = molter.setup(client, default_prefix="!")
 molt = molter.setup(client)
 
 
@@ -72,10 +78,6 @@ class Extend(molter.MolterExtension):
 def setup(client: interactions.Client):
     Extend(client)
 ```
-
-### Other examples
-
-To view more examples and understand how `molter` works, take a look at the [`examples`](https://github.com/interactions-py/molter/tree/main/examples) folder in this repository.
 
 ## Branch Explanation
 
