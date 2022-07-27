@@ -21,6 +21,7 @@ __all__ = (
     "text_based_command",
     "register_converter",
     "globally_register_converter",
+    "prefixed_parameter",
     "ext_error_handler",
 )
 
