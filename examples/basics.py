@@ -29,6 +29,11 @@ client = interactions.Client(
 # advanced example.
 molt = molter.setup(client)
 
+# Since this is common enough though, this is how you would make a bot that
+# used, say, "!" as its prefix. This can also be a list of prefixes the bot can use.
+# See the advanced example for more dynamic prefixes.
+# molt = molter.setup(client, default_prefix="!")
+
 
 # And this is how we declare prefixed commands in our runner file.
 # You can use a variety of aliases for prefixed_command, including prefix_command
