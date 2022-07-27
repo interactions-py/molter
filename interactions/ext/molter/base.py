@@ -160,7 +160,6 @@ class Molter:
             typing.Callable[[MolterContext, Exception], typing.Coroutine]
         ] = None,
     ) -> None:
-
         # typehinting funkyness for better typehints
         client = typing.cast(MolterInjectedClient, client)
 
