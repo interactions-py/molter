@@ -307,7 +307,7 @@ def _get_params(
         cmd_param.kind = param.kind
         cmd_param.type = anno = param.annotation
 
-        if parameter_dict := parameter_info.get(name):
+        if parameter_dict := parameter_info.pop(name, None):
             cmd_param.default = parameter_dict["default"]
         else:
             cmd_param.default = (
@@ -363,6 +363,11 @@ def _get_params(
             finished_params = True
 
         cmd_params.append(cmd_param)
+
+    if parameter_info:
+        for name in parameter_info.keys():
+            # this should only raise once due to how errors work
+            raise ValueError(f'"{name}" is not a parameter in the command provided.')
 
     return cmd_params
 
