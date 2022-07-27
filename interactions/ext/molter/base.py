@@ -1,24 +1,20 @@
-import functools
 import inspect
 import logging
 import traceback
 import typing
-from copy import deepcopy
 
 import interactions
 from . import utils
 from .command import MolterCommand
-from .context import HybridContext
 from .context import MolterContext
 from .converters import MolterConverter
-from .hybrid import _molter_from_slash
 from interactions import ext
-from interactions.client.decor import command as slash_command
 
 __all__ = (
     "__version__",
     "base",
     "MolterInjectedClient",
+    "MolterExtensionMixin",
     "MolterExtension",
     "Molter",
     "setup",
@@ -56,32 +52,53 @@ class MolterInjectedClient(interactions.Client):
     molter: "Molter"
 
 
-class MolterExtension(interactions.Extension):
-    """An extension that allows you to use molter commands in them."""
+class MolterExtensionMixin:
+    """
+    A mixin that can be used to add molter functionality into any subclass of
+    interactions.py's extensions. Simply use it like so:
+
+    ```python
+    class MyExt(MolterExtensionMixin, Extension):
+        ...
+    ```
+    """
 
     client: interactions.Client
+    _error_callback: typing.Optional[
+        typing.Callable[[MolterContext, Exception], typing.Coroutine]
+    ] = None
     _molter_prefixed_commands: typing.List[MolterCommand]
 
-    def __new__(
-        cls, client: interactions.Client, *args, **kwargs
-    ) -> "interactions.Extension":
-        self: "MolterExtension" = super().__new__(cls, client, *args, **kwargs)  # type: ignore
+    def __new__(cls, client: interactions.Client, *args, **kwargs):
+        self = super().__new__(cls, client, *args, **kwargs)  # type: ignore
         self._molter_prefixed_commands = []
 
         # typehinting funkyness for better typehints
         self.client = typing.cast(MolterInjectedClient, self.client)
 
-        for _, cmd in inspect.getmembers(
+        error_handler_count = 0
+
+        for _, func in inspect.getmembers(
             self,
             predicate=lambda x: isinstance(x, MolterCommand)
-            or hasattr(x, "__molter_command__"),
+            or hasattr(x, "__ext_molter_error__"),
         ):
-            cmd: MolterCommand = getattr(cmd, "__molter_command__", None) or cmd
+            if isinstance(func, MolterCommand):
+                cmd: MolterCommand = func
 
-            if not cmd.is_subcommand():  # we don't want to add subcommands
-                cmd = utils._wrap_recursive(cmd, self)
-                self._molter_prefixed_commands.append(cmd)
-                self.client.molter.add_prefixed_command(cmd)
+                if not cmd.is_subcommand():  # we don't want to add subcommands
+                    cmd = utils._wrap_recursive(cmd, self)
+                    self._molter_prefixed_commands.append(cmd)
+                    self.client.molter.add_prefixed_command(cmd)
+            elif hasattr(func, "__ext_molter_error__"):
+                if error_handler_count >= 1:
+                    raise ValueError(
+                        "An MolterExtension cannot have more than one molter command"
+                        " error handler."
+                    )
+
+                self._error_callback = func
+                error_handler_count += 1
 
         return self
 
@@ -96,7 +113,13 @@ class MolterExtension(interactions.Extension):
             for name in names_to_remove:
                 self.client.molter.prefixed_commands.pop(name, None)
 
-        return await super().teardown(*args, **kwargs)
+        return await super().teardown(*args, **kwargs)  # type: ignore
+
+
+class MolterExtension(MolterExtensionMixin, interactions.Extension):
+    """An extension that allows you to use molter commands in them."""
+
+    pass
 
 
 class Molter:
@@ -110,11 +133,6 @@ class Molter:
         generate_prefixes (`typing.Callable`, optional): An asynchronous function \
             that takes in a `Client` and `Message` object and returns either a \
             string or an iterable of strings. Defaults to None.
-        fetch_data_for_context (`bool`): If molter should attempt to fetch extra \
-            data, like the `Guild` and `Channel` where the message was sent. \
-            Turning this on may make the bot respond slower or faster depending on \
-            the converters used in the command, but usually is slower. \
-            Defaults to False.
         on_molter_command_error (`typing.Callable`, optional): An asynchronous function \
             that takes in a `MolterContext` and `Exception` to handle errors that occur \
             when running molter commands. By default, molter will output the error to \
@@ -128,6 +146,7 @@ class Molter:
     def __init__(
         self,
         client: interactions.Client,
+        *,
         default_prefix: typing.Optional[typing.Union[str, typing.Iterable[str]]] = None,
         generate_prefixes: typing.Optional[
             typing.Callable[
@@ -137,7 +156,6 @@ class Molter:
                 ],
             ]
         ] = None,
-        fetch_data_for_context: bool = False,
         on_molter_command_error: typing.Optional[
             typing.Callable[[MolterContext, Exception], typing.Coroutine]
         ] = None,
@@ -148,7 +166,6 @@ class Molter:
 
         self.client = client
         self.default_prefix = default_prefix
-        self.fetch_data_for_context = fetch_data_for_context
         self.prefixed_commands: typing.Dict[str, MolterCommand] = {}
 
         if default_prefix is None and generate_prefixes is None:
@@ -275,75 +292,6 @@ class Molter:
     prefix_command = prefixed_command
     text_based_command = prefixed_command
 
-    @functools.wraps(slash_command)
-    def hybrid_slash(
-        self,
-        *,
-        name: typing.Optional[str] = interactions.MISSING,  # type: ignore
-        description: typing.Optional[str] = interactions.MISSING,  # type: ignore
-        scope: typing.Optional[
-            typing.Union[
-                int,
-                interactions.Guild,
-                typing.List[int],
-                typing.List[interactions.Guild],
-            ]
-        ] = interactions.MISSING,  # type: ignore
-        options: typing.Optional[
-            typing.Union[
-                typing.Dict[str, typing.Any],
-                typing.List[typing.Dict[str, typing.Any]],
-                interactions.Option,
-                typing.List[interactions.Option],
-            ]
-        ] = interactions.MISSING,  # type: ignore
-        name_localizations: typing.Optional[
-            typing.Dict[typing.Union[str, interactions.Locale], str]
-        ] = interactions.MISSING,  # type: ignore
-        description_localizations: typing.Optional[
-            typing.Dict[typing.Union[str, interactions.Locale], str]
-        ] = interactions.MISSING,  # type: ignore
-        default_member_permissions: typing.Optional[
-            typing.Union[int, interactions.Permissions]
-        ] = interactions.MISSING,  # type: ignore
-        dm_permission: typing.Optional[bool] = interactions.MISSING,  # type: ignore
-    ):
-        """
-        A decorator for creating hybrid commands based off a normal slash command.
-        Uses all normal slash command arguments (besides for type), but also makes
-        a prefixed command when used in conjunction with `MolterExtension`.
-
-        Remember to use `HybridContext` as the context for proper type hinting.
-        Subcommand options do not work with this decorator right now.
-        """
-        kwargs = locals()
-        del kwargs["self"]
-        kwargs["type"] = interactions.ApplicationCommandType.CHAT_INPUT
-
-        def decorator(coro):
-            coro_copy = deepcopy(coro)
-            molt_cmd = _molter_from_slash(coro_copy, **kwargs)
-            self.add_prefixed_command(molt_cmd)
-
-            async def wrapped_command(
-                ctx: interactions.CommandContext, *args, **kwargs
-            ):
-                new_ctx = HybridContext(
-                    message=ctx.message,
-                    user=ctx.user,
-                    member=ctx.member,
-                    channel=ctx.channel,
-                    guild=ctx.guild,
-                    prefix="/",
-                    command_context=ctx,
-                )
-                new_ctx.args = list(args) + list(kwargs.values())
-                await coro(new_ctx, *args, **kwargs)
-
-            return self.client.command(**kwargs)(wrapped_command)
-
-        return decorator
-
     async def generate_prefixes(
         self, client: interactions.Client, msg: interactions.Message
     ) -> typing.Union[str, typing.Iterable[str]]:
@@ -394,14 +342,18 @@ class Molter:
         # weirdly enough, sometimes this isn't set right
         msg._client = self.client._http
 
-        channel = None
-        guild = None
+        if msg.guild_id:
+            guild = await utils._wrap_lib_exception(
+                interactions.get(
+                    self.client, interactions.Guild, object_id=int(msg.guild_id)
+                )
+            )
+        else:
+            guild = None
 
-        if self.fetch_data_for_context:
-            # get from cache if possible
-            channel = await msg.get_channel()
-            if msg.guild_id:
-                guild = await msg.get_guild()
+        channel = await interactions.get(
+            self.client, interactions.Channel, object_id=int(msg.channel_id)
+        )
 
         return MolterContext(  # type: ignore
             client=self.client,
@@ -411,28 +363,6 @@ class Molter:
             channel=channel,
             guild=guild,
         )
-
-    def _standard_to_hybrid(self, ctx: MolterContext) -> HybridContext:
-        """
-        Creates a `HybridContext` object from `MolterContext`.
-
-        Args:
-            ctx (`MolterContext`): The context to create a hybrid context from.
-
-        Returns:
-            `HybridContext`: The context generated.
-        """
-        new_ctx = HybridContext(  # type: ignore
-            client=ctx.client,
-            message=ctx.message,
-            user=ctx.author,  # type: ignore
-            member=ctx.member,
-            channel=ctx.channel,
-            guild=ctx.guild,
-        )
-        new_ctx.prefix = ctx.prefix
-        new_ctx.content_parameters = ctx.content_parameters
-        return new_ctx
 
     async def _handle_prefixed_commands(self, msg: interactions.Message):
         """
@@ -458,9 +388,7 @@ class Molter:
             context = await self._create_context(msg)
             context.prefix = prefix_used
             context.content_parameters = utils.remove_prefix(msg.content, prefix_used)
-            command: typing.Optional[
-                typing.Union[Molter, MolterCommand]
-            ] = self.client.molter
+            command = self.client.molter
 
             while True:
                 first_word: str = utils.get_first_word(context.content_parameters)  # type: ignore
@@ -480,18 +408,20 @@ class Molter:
                     try:
                         await command._run_checks(context)
                     except Exception as e:
-                        self.client._websocket._dispatch.dispatch(
-                            "on_molter_command_error", context, e
-                        )
+                        if command.error_callback:
+                            await command.error_callback(context, e)  # type: ignore
+                        elif command.extension and command.extension._error_callback:
+                            await command.extension._error_callback(context, e)
+                        else:
+                            self.client._websocket._dispatch.dispatch(
+                                "on_molter_command_error", context, e
+                            )
                         return
 
             if isinstance(command, Molter):
                 command = None
 
             if command and command.enabled:
-                if command.hybrid:
-                    context = self._standard_to_hybrid(context)
-
                 # this looks ugly, ik
                 context.invoked_name = utils.remove_suffix(
                     utils.remove_prefix(msg.content, prefix_used),
@@ -506,9 +436,14 @@ class Molter:
                     )
                     await command(context)
                 except Exception as e:
-                    self.client._websocket._dispatch.dispatch(
-                        "on_molter_command_error", context, e
-                    )
+                    if command.error_callback:
+                        await command.error_callback(context, e)  # type: ignore
+                    elif command.extension and command.extension._error_callback:
+                        await command.extension._error_callback(context, e)
+                    else:
+                        self.client._websocket._dispatch.dispatch(
+                            "on_molter_command_error", context, e
+                        )
                 finally:
                     self.client._websocket._dispatch.dispatch(
                         "on_molter_command_complete", context
@@ -517,6 +452,7 @@ class Molter:
 
 def setup(
     client: interactions.Client,
+    *,
     default_prefix: typing.Optional[typing.Union[str, typing.Iterable[str]]] = None,
     generate_prefixes: typing.Optional[
         typing.Callable[
@@ -526,11 +462,9 @@ def setup(
             ],
         ]
     ] = None,
-    fetch_data_for_context: bool = False,
     on_molter_command_error: typing.Optional[
         typing.Callable[[MolterContext, Exception], typing.Coroutine]
     ] = None,
-    *args,
     **kwargs,
 ) -> Molter:
     """
@@ -543,11 +477,6 @@ def setup(
         generate_prefixes (`typing.Callable`, optional): An asynchronous function \
             that takes in a `Client` and `Message` object and returns either a \
             string or an iterable of strings. Defaults to None.
-        fetch_data_for_context (`bool`): If molter should attempt to fetch extra \
-            data, like the `Guild` and `Channel` where the message was sent. \
-            Turning this on may make the bot respond slower or faster depending on \
-            the converters used in the command, but usually is slower. \
-            Defaults to False.
         on_molter_command_error (`typing.Callable`, optional): An asynchronous function \
             that takes in a `MolterContext` and `Exception` to handle errors that occur \
             when running molter commands. By default, molter will output the error to \
@@ -561,9 +490,9 @@ def setup(
         `Molter`: The class that deals with all things Molter.
     """
     return Molter(
-        client,
-        default_prefix,
-        generate_prefixes,
-        fetch_data_for_context,
-        on_molter_command_error,
+        client=client,
+        default_prefix=default_prefix,
+        generate_prefixes=generate_prefixes,
+        on_molter_command_error=on_molter_command_error,
+        **kwargs,
     )

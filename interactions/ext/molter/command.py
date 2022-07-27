@@ -1,6 +1,5 @@
 import collections
 import contextlib
-import functools
 import inspect
 import typing
 
@@ -22,7 +21,12 @@ __all__ = (
     "text_based_command",
     "register_converter",
     "globally_register_converter",
+    "ext_error_handler",
 )
+
+
+if typing.TYPE_CHECKING:
+    from .base import MolterExtension
 
 # 3.8+ compatibility
 NoneType = type(None)
@@ -37,6 +41,18 @@ except ImportError:  # 3.8-3.9
 
 # thankfully, modules are singletons
 _global_type_to_converter = dict(converters.INTER_OBJECT_TO_CONVERTER)
+
+ERROR_HANDLER = typing.Callable[
+    [context.MolterContext, Exception], typing.Awaitable[typing.Any]
+]
+EXT_ERROR_HANDLER = typing.Callable[
+    [typing.Any, context.MolterContext, Exception], typing.Awaitable[typing.Any]
+]
+# for some reason, typing an ext here doesn't work, so oh well
+ERROR_HANDLER_FUNCTION = typing.Union[ERROR_HANDLER, EXT_ERROR_HANDLER]
+
+EEH = typing.TypeVar("EEH", bound=EXT_ERROR_HANDLER)
+EHF = typing.TypeVar("EHF", bound=ERROR_HANDLER_FUNCTION)
 
 
 @attrs.define(slots=True)
@@ -410,7 +426,7 @@ async def _greedy_convert(
     hash=False,
 )
 class MolterCommand:
-    extension: typing.Any = attrs.field(default=None)
+    extension: typing.Optional["MolterExtension"] = attrs.field(default=None)
     "The extension this command belongs to."
     enabled: bool = attrs.field(default=True)
     "Whether this can be run at all."
@@ -441,8 +457,6 @@ class MolterCommand:
     """If `True` and if the base of a subcommand, every subcommand underneath
     it will run this command's checks and cooldowns before its own. Otherwise,
     only the subcommand's checks are checked."""
-    hybrid: bool = attrs.field(default=False)
-    """Is this command a hybrid command or not?"""
 
     help: typing.Optional[str] = attrs.field(default=None)
     """The long help text for the command."""
@@ -463,6 +477,8 @@ class MolterCommand:
         ]
     ] = attrs.field(factory=list)
     """A list of checks for this command."""
+    error_callback: typing.Optional[ERROR_HANDLER_FUNCTION] = attrs.field(default=None)
+    """The callback to use if an error occurs."""
 
     _usage: typing.Optional[str] = attrs.field(default=None, repr=False)
     _type_to_converter: typing.Dict[
@@ -662,6 +678,37 @@ class MolterCommand:
                 return None
 
         return cmd
+
+    @typing.overload
+    def error(self) -> typing.Callable[[EHF], EHF]:
+        ...
+
+    @typing.overload
+    def error(self, error_callback: EHF) -> EHF:
+        ...
+
+    def error(
+        self,
+        error_callback: typing.Optional[EHF] = None,
+    ) -> typing.Union[typing.Callable[[EHF], EHF], EHF]:
+        """
+        A decorator to register an error callback for a command.
+
+        Args:
+            error_callback (`Callable`):
+            The error callback to register. It must be an asynchronous function that
+            takes in MolterContext and an exception.
+        """
+
+        def decorator(error_callback: EHF):
+            self.error_callback = error_callback
+            return error_callback
+
+        if error_callback is not None:
+            self.error_callback = error_callback
+            return error_callback  # type: ignore
+
+        return decorator
 
     def subcommand(
         self,
@@ -1013,3 +1060,36 @@ def globally_register_converter(
     # hate me, but i think it makes sense here
     global _global_type_to_converter
     _global_type_to_converter.update({anno_type: converter})
+
+
+@typing.overload
+def ext_error_handler() -> typing.Callable[[EEH], EEH]:
+    ...
+
+
+@typing.overload
+def ext_error_handler(error_callback: EEH) -> EEH:
+    ...
+
+
+def ext_error_handler(
+    error_callback: typing.Optional[EEH] = None,
+) -> typing.Union[typing.Callable[[EEH], EEH], EEH]:
+    """
+    A decorator to register an error callback for a MolterExtension.
+
+    Args:
+        error_callback (`Callable`):
+        The error callback to register. It must be an asynchronous function that
+        takes in `self`, MolterContext and an exception.
+    """
+
+    def decorator(error_callback: EEH):
+        error_callback.__ext_molter_error__ = True
+        return error_callback
+
+    if error_callback is not None:
+        error_callback.__ext_molter_error__ = True
+        return error_callback
+
+    return decorator

@@ -5,8 +5,10 @@ import re
 import typing
 
 import interactions
+import interactions.api.error as inter_errors
 
 if typing.TYPE_CHECKING:
+    from .base import MolterExtension
     from .command import MolterCommand
 
 __all__ = (
@@ -33,6 +35,16 @@ SnowflakeType = typing.Union[interactions.Snowflake, int, str]
 OptionalSnowflakeType = typing.Optional[SnowflakeType]
 
 
+T = typing.TypeVar("T")
+
+
+async def _wrap_lib_exception(function: typing.Awaitable[T]) -> typing.Optional[T]:
+    try:
+        return await function
+    except inter_errors.LibraryException:
+        return None
+
+
 def _qualname_self_check(callback: typing.Callable):
     # we need to ignore parameters like self and ctx, so this is the easiest way
     # forgive me, but this is the only reliable way i can find out if the function...
@@ -46,9 +58,12 @@ def _qualname_wrap(callback: typing.Callable):
         return functools.partial(callback, None)
 
 
-def _wrap_recursive(cmd: "MolterCommand", ext: interactions.Extension):
+def _wrap_recursive(cmd: "MolterCommand", ext: "MolterExtension"):
     cmd.extension = ext
     cmd.callback = functools.partial(cmd.callback, ext)
+
+    if cmd.error_callback:
+        cmd.error_callback = functools.partial(cmd.error_callback, ext)
 
     for subcommand in cmd.all_commands:
         new_sub = _wrap_recursive(subcommand, ext)
