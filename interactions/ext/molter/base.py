@@ -94,7 +94,7 @@ class MolterExtensionMixin:
             elif hasattr(func, "__ext_molter_error__"):
                 if error_handler_count >= 1:
                     raise ValueError(
-                        "An MolterExtension cannot have more than one molter command"
+                        "A molter extension cannot have more than one molter command"
                         " error handler."
                     )
 
