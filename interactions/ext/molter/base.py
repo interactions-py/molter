@@ -200,7 +200,8 @@ class MolterManager:
             async def new_ready():
                 for _, func in inspect.getmembers(
                     sys.modules["__main__"],
-                    predicate=lambda x: isinstance(x, MolterCommand),
+                    predicate=lambda x: isinstance(x, MolterCommand)
+                    and not x.is_subcommand(),
                 ):
                     self.add_prefixed_command(func)
                 await old_ready()
@@ -213,19 +214,25 @@ class MolterManager:
         self.client.event(self.on_molter_command_error, name="on_molter_command_error")  # type: ignore
 
     def add_prefixed_command(self, command: MolterCommand) -> None:
-        """Add a prefixed command to the client.
+        """
+        Add a prefixed command to the client.
 
         Args:
             command (`MolterCommand`): The command to add.
         """
         if command.parent:
-            return  # silent return to ignore subcommands - hacky, ik
+            raise ValueError(
+                "You cannot add subcommands to the client - add the base command"
+                " instead."
+            )
+
+        command._parse_parameters()
 
         if command.name not in self.prefixed_commands:
             self.prefixed_commands[command.name] = command
         else:
             raise ValueError(
-                f"Duplicate Command! Multiple commands share the name {command.name}"
+                f"Duplicate Command! Multiple commands share the name {command.name}."
             )
 
         for alias in command.aliases:
@@ -233,7 +240,7 @@ class MolterManager:
                 self.prefixed_commands[alias] = command
                 continue
             raise ValueError(
-                f"Duplicate Command! Multiple commands share the name/alias {alias}"
+                f"Duplicate Command! Multiple commands share the name/alias {alias}."
             )
 
     def prefixed_command(

@@ -53,19 +53,6 @@ async def _wrap_lib_exception(function: typing.Awaitable[T]) -> typing.Optional[
         return None
 
 
-def _qualname_self_check(callback: typing.Callable):
-    # we need to ignore parameters like self and ctx, so this is the easiest way
-    # forgive me, but this is the only reliable way i can find out if the function...
-    return "." in callback.__qualname__  # is part of a class
-
-
-def _qualname_wrap(callback: typing.Callable):
-    if _qualname_self_check(callback):
-        return functools.partial(callback, None, None)
-    else:
-        return functools.partial(callback, None)
-
-
 def _wrap_recursive(cmd: "MolterCommand", ext: "MolterExtension"):
     cmd.extension = ext
     cmd.callback = functools.partial(cmd.callback, ext)

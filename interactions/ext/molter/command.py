@@ -1,5 +1,6 @@
 import collections
 import contextlib
+import functools
 import inspect
 import typing
 
@@ -10,7 +11,6 @@ import interactions
 from . import context
 from . import converters
 from . import errors
-from .utils import _qualname_wrap
 from .utils import _start_quotes
 from .utils import maybe_coroutine
 
@@ -511,23 +511,17 @@ class MolterCommand:
     _type_to_converter: typing.Dict[
         type, typing.Type[converters.MolterConverter]
     ] = attrs.field(factory=dict, converter=_merge_converters, repr=False)
+    _parameter_info: typing.Dict[str, ParameterInfo] = attrs.field(
+        factory=dict, repr=False
+    )
     _signature: typing.Optional[inspect.Signature] = attrs.field(
         default=None, repr=False
     )
 
     def __attrs_post_init__(self) -> None:
-        if not self._signature:
-            callback = _qualname_wrap(self.callback)
-            self._signature = inspect.signature(callback)
-
-        # doing this here just so we don't run into any issues here with a value
-        # not being there yet or something if we used defaults, idk
-        parameter_info: dict[str, ParameterInfo] = getattr(
-            self.callback, "_parameter_info", {}
-        )
-        self.parameters = _get_params(
-            self._signature, self._type_to_converter, parameter_info
-        )
+        # for some reason, i can't seem to pick this up anywhere else
+        if hasattr(self.callback, "_parameter_info"):
+            self._parameter_info = self.callback._parameter_info
 
         # we have to do this afterwards as these rely on the callback
         # and its own value, which is impossible to get with attrs
@@ -638,6 +632,33 @@ class MolterCommand:
             results.append("".join(result_builder))
 
         return " ".join(results)
+
+    def _parse_parameters(self) -> None:
+        """
+        Parses the parameters that this command has into a form molter can use.
+
+        This is purposely seperated like this to allow "lazy parsing" - parsing
+        as the command is added to a client rather than being parsed immediately.
+        This allows variables like "self" to be filtered out, and allows
+        for decorators that modify parameters to be parsed later, all at once.
+
+        This is called automatically if you add the command via
+        `MolterManager.add_prefixed_command`, but it is up to the user to remember
+        to put the extension in, if needed.
+        """
+
+        if not self._signature:
+            # we want to avoid ctx - self should have been handled earlier
+            callback = functools.partial(self.callback, None)
+            self._signature = inspect.signature(callback)
+
+        # doing this here just so we don't run into any issues here with a value
+        # not being there yet or something if we used defaults, idk
+        self.parameters = _get_params(
+            self._signature,
+            self._type_to_converter,
+            self._parameter_info,
+        )
 
     def is_subcommand(self) -> bool:
         """Returns if this command is a subcommand or not."""
@@ -1057,26 +1078,6 @@ def register_converter(
         else:
             command._type_to_converter = {type_: converter}
 
-        if isinstance(command, MolterCommand):
-            # we want to update any instance where the anno_type was used
-            # to use the provided converter without re-analyzing every param
-            for param in command.parameters:
-                param_type = param.type
-                if type_ == param_type:
-                    param.converters = [converter]
-                else:
-                    if (
-                        typing_extensions.get_origin(param_type)
-                        == typing_extensions.Annotated
-                    ):
-                        param_type = _get_from_anno_type(param_type)
-
-                    with contextlib.suppress(ValueError):
-                        # if you have multiple of the same anno/type here, i don't know
-                        # what to tell you other than why
-                        index = typing_extensions.get_args(param.type).index(type_)
-                        param.converters[index] = converter
-
         return command
 
     return wrapper
@@ -1138,22 +1139,10 @@ def prefixed_parameter(
         elif default is not interactions.MISSING:
             parameter_info["default"] = default
 
-        if not isinstance(command, MolterCommand):
-            if hasattr(command, "_parameters_info"):
-                command._parameter_info[parameter_name] = parameter_info  # type: ignore
-            else:
-                command._parameter_info = {parameter_name: parameter_info}  # type: ignore
-
-        if isinstance(command, MolterCommand):
-            if the_param := next(
-                (p for p in command.parameters if p.name == parameter_name), None
-            ):
-                if factory is not None or default is not interactions.MISSING:
-                    the_param.default = parameter_info["default"]
-            else:
-                raise ValueError(
-                    f'"{parameter_name}" is not a parameter in the command provided.'
-                )
+        if hasattr(command, "_parameters_info"):
+            command._parameter_info[parameter_name] = parameter_info  # type: ignore
+        else:
+            command._parameter_info = {parameter_name: parameter_info}  # type: ignore
 
         return command
 
