@@ -1,5 +1,6 @@
 import inspect
 import logging
+import sys
 import traceback
 import typing
 
@@ -185,6 +186,29 @@ class Molter:
         # this allows us to use a (hopefully) non-conflicting namespace
         self.client.molter = self
 
+        # i hope someone dies internally when looking at this /lhj
+        # but the general idea is that we want to process commands
+        # from the main file right before starting up, so that we have a full
+        # list of commands (otherwise, we may only get a partial list)
+
+        # since we can pretty much guarantee that the ready function will only be
+        # ran at the end for a variety of reasons, we can hook onto this
+        # rather easily without many problems... unless someone's adding commands
+        # after the bot has started, to which they should be using add_prefixed_command
+        # anyways.
+        def cursed_override(old_ready):
+            async def new_ready():
+                for _, func in inspect.getmembers(
+                    sys.modules["__main__"],
+                    predicate=lambda x: isinstance(x, MolterCommand),
+                ):
+                    self.add_prefixed_command(func)
+                await old_ready()
+
+            return new_ready
+
+        self.client._ready = cursed_override(self.client._ready)
+
         self.client.event(self._handle_prefixed_commands, name="on_message_create")  # type: ignore
         self.client.event(self.on_molter_command_error, name="on_molter_command_error")  # type: ignore
 
@@ -270,7 +294,7 @@ class Molter:
         """
 
         def wrapper(func):
-            cmd = MolterCommand(  # type: ignore
+            return MolterCommand(
                 callback=func,
                 name=name or func.__name__,
                 aliases=aliases or [],
@@ -283,8 +307,6 @@ class Molter:
                 type_to_converter=type_to_converter  # type: ignore
                 or getattr(func, "_type_to_converter", {}),
             )
-            self.add_prefixed_command(cmd)
-            return cmd
 
         return wrapper
 
