@@ -96,7 +96,7 @@ class MolterContext:
 
     @property
     def me(self) -> _typing.Union[interactions.Member, interactions.User, None]:
-        """Returns the bot member or user, if possible."""
+        """Returns the bot member or user, if cached."""
         if not self.client.me:
             return None
 
