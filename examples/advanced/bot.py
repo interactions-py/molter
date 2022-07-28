@@ -29,7 +29,7 @@ async def generate_prefixes(bot: interactions.Client, msg: interactions.Message)
     # when_mentioned is also a function provided, if you want to use it.
 
     # Note that if you just want to have a static prefix (or prefixes),
-    # use the default_prefix argument for Molter instead.
+    # use the default_prefix argument instead.
 
 
 # You can see here we pass our generate_prefixes here.
@@ -44,7 +44,7 @@ async def generate_prefixes(bot: interactions.Client, msg: interactions.Message)
 # This isn't demonstrated here, though.
 
 # Also fun fact: as you can see, the setup function returns something - a
-# Molter object in fact. While you can access this via client.molter,
+# MolterManager object in fact. While you can access this via client.molter,
 # having the object like this is better typehinting wise.
 # You usually don't need to use this object, but it does hold all of the
 # prefixed commands, and also has a couple of functions you may like.

@@ -13,8 +13,8 @@ client = interactions.Client(
 
 # Here's where things get interesting, huh?
 # We actually do not want to load molter as an extension - it'll work, but
-# initializing Molter itself via the setup method is the preferred way - using
-# molter.Molter is a close second, though.
+# initializing molter itself via the setup method is the preferred way
+# - using molter.MolterManager is a close second, though.
 # Regardless, this line lets molter establish its hooks into interactions.py,
 # allowing for its commands to work how they should.
 

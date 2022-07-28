@@ -17,7 +17,7 @@ __all__ = (
     "MolterInjectedClient",
     "MolterExtensionMixin",
     "MolterExtension",
-    "Molter",
+    "MolterManager",
     "setup",
 )
 
@@ -46,11 +46,11 @@ base = ext.Base(
 
 class MolterInjectedClient(interactions.Client):
     """
-    A semi-stub for Clients injected with Molter.
+    A semi-stub for Clients injected with molter.
     This should only be used for typehinting.
     """
 
-    molter: "Molter"
+    molter: "MolterManager"
 
 
 class MolterExtensionMixin:
@@ -123,7 +123,7 @@ class MolterExtension(MolterExtensionMixin, interactions.Extension):
     pass
 
 
-class Molter:
+class MolterManager:
     """
     The main part of the extension. Deals with injecting itself in the first place.
 
@@ -295,9 +295,9 @@ class Molter:
 
         def wrapper(func):
             logger.warning(
-                "`Molter.prefixed_command` (commonly seen as `@molt.prefixed_command`)"
-                " and its aliases has been deprecated. Use `molter.prefixed_command` or"
-                " its aliases instead."
+                "`MolterManager.prefixed_command` (commonly seen as"
+                " `@molt.prefixed_command`) and its aliases has been deprecated. Use"
+                " `molter.prefixed_command` or its aliases instead."
             )
 
             return MolterCommand(
@@ -445,7 +445,7 @@ class Molter:
                             )
                         return
 
-            if isinstance(command, Molter):
+            if isinstance(command, MolterManager):
                 command = None
 
             if command and command.enabled:
@@ -493,7 +493,7 @@ def setup(
         typing.Callable[[MolterContext, Exception], typing.Coroutine]
     ] = None,
     **kwargs,
-) -> Molter:
+) -> MolterManager:
     """
     Allows setup of Molter through normal extension loading.
     It is recommended to use this function directly, though.
@@ -515,9 +515,9 @@ def setup(
         defaults to using it being mentioned as its prefix.
 
     Returns:
-        `Molter`: The class that deals with all things Molter.
+        `MolterManager`: The class that deals with all things Molter.
     """
-    return Molter(
+    return MolterManager(
         client=client,
         default_prefix=default_prefix,
         generate_prefixes=generate_prefixes,
