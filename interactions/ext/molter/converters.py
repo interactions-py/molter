@@ -135,31 +135,17 @@ class MemberConverter(IDConverter[interactions.Member]):
             )
         else:
             query = argument
+            if len(argument) > 5 and argument[-5] == "#":
+                query, _, _ = argument.rpartition("#")
 
-            if ctx.guild.members:
-                for member in ctx.guild.members:
-                    if member.name == query or (
-                        member.user
-                        and (
-                            member.user.username == query
-                            or f"{member.user.username}#{member.user.discriminator}"
-                            == query
-                        )
-                    ):
-                        result = member
-                        break
-            else:
-                if len(argument) > 5 and argument[-5] == "#":
-                    query, _, _ = argument.rpartition("#")
+            members_data = await _wrap_lib_exception(
+                ctx._http.search_guild_members(int(ctx.guild_id), query, limit=5)
+            )
 
-                members_data = await _wrap_lib_exception(
-                    ctx._http.search_guild_members(int(ctx.guild_id), query, limit=5)
-                )
+            if not members_data:
+                raise errors.BadArgument(f'Member "{argument}" not found.')
 
-                if not members_data:
-                    raise errors.BadArgument(f'Member "{argument}" not found.')
-
-                result = self._get_member_from_list(members_data, argument)
+            result = self._get_member_from_list(members_data, argument)
 
         if not result:
             raise errors.BadArgument(f'Member "{argument}" not found.')
