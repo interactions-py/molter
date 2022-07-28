@@ -42,12 +42,7 @@ class Extension(molter.MolterExtension):
     def __init__(self, client: interactions.Client):
         self.client = client
 
-    # First off - you'll notice how the way to declare a prefixed command
-    # is different in extensions - this is just due to how extensions (and any similar
-    # system) are. Just use this method in extensions and the other method in the main
-    # file and you'll be good.
-
-    # Second, you can see us using the converter here.
+    # You can see us using the converter here.
     # It should be noted that you can do something as simple as
     # "judgment: JudgementConverter" to use a converter, but using Annotated (possible
     # in Python 3.8 via typing_extensions - installed as a requirement when installing

@@ -27,12 +27,12 @@ client = interactions.Client(
 
 # There is also on_molter_command_error - this will be talked more about in the
 # advanced example.
-molt = molter.setup(client)
+molter.setup(client)
 
 # Since this is common enough though, this is how you would make a bot that
 # used, say, "!" as its prefix. This can also be a list of prefixes the bot can use.
 # See the advanced example for more dynamic prefixes.
-# molt = molter.setup(client, default_prefix="!")
+# molter.setup(client, default_prefix="!")
 
 
 # And this is how we declare prefixed commands in our runner file.
@@ -52,7 +52,7 @@ molt = molter.setup(client)
 # molter will automatically handle simple typehints like these, require the user
 # to provide a number, and convert the input to an integer if it is.
 # molter also handles some interactions.py classes, like User and Message.
-@molt.prefixed_command(aliases=["test2"])
+@molter.prefixed_command(aliases=["test2"])
 async def test(ctx: molter.MolterContext, a_number: int):
     # MolterContext has a couple of QoL features, one being replying being as
     # simple as the below. ctx.message.reply does the same thing, if you wish.

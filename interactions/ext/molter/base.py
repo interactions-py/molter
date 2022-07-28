@@ -294,6 +294,12 @@ class Molter:
         """
 
         def wrapper(func):
+            logger.warning(
+                "`Molter.prefixed_command` (commonly seen as `@molt.prefixed_command`)"
+                " and its aliases has been deprecated. Use `molter.prefixed_command` or"
+                " its aliases instead."
+            )
+
             return MolterCommand(
                 callback=func,
                 name=name or func.__name__,

@@ -47,8 +47,14 @@ molt = molter.setup(
     generate_prefixes=generate_prefixes,
 )
 
+# Also fun fact: as you can see, the setup function returns something - a
+# Molter object in fact. While you can access this via client.molter,
+# having the object like this is better typehinting wise.
+# You usually don't need to use this object, but it does hold all of the
+# prefixed commands, and also has a couple of functions you may like.
 
-# Let's be a bit more advanced, shall we?
+
+# Anyways, let's be a bit more advanced, shall we?
 # As you can see, this command will not be run by doing !a_name or the like -
 # the user will need to do !test.
 # Furthermore, we used ignore_extra so that if a user provided an argument beyond
@@ -71,7 +77,7 @@ molt = molter.setup(
 # Unlike discord.py or NAFF though, some objects can only take IDs due to technical
 # reasons.
 # Converters will be talked more in-depth in the extension.
-@molt.prefixed_command(name="test", ignore_extra=False)
+@molter.prefixed_command(name="test", ignore_extra=False)
 async def a_name(
     ctx: molter.MolterContext,
     member_or_user: Union[interactions.Member, interactions.User],
@@ -88,7 +94,7 @@ async def starts_with_a(ctx: molter.MolterContext):
 
 # And here's us using it with a prefixed command. This command will only run if the
 # user has a name that starts with an "a", and will error out otherwise.
-@molt.prefixed_command()
+@molter.prefixed_command()
 @molter.check(starts_with_a)
 async def user_starts_with_a(ctx: molter.MolterContext):
     await ctx.reply("Hey, your username starts with the letter 'a'!")

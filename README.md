@@ -46,11 +46,11 @@ client = interactions.Client(
     intents=interactions.Intents.DEFAULT | interactions.Intents.GUILD_MESSAGE_CONTENT,
 )
 # See examples folder for more information.
-# molt = molter.setup(client, default_prefix="!")
-molt = molter.setup(client)
+# molter.setup(client, default_prefix="!")
+molter.setup(client)
 
 
-@molt.prefixed_command(aliases=["test2"])
+@molter.prefixed_command(aliases=["test2"])
 async def test(ctx: molter.MolterContext, some_var: int):
     await ctx.reply(str(some_var))
 
