@@ -220,7 +220,7 @@ class MolterManager:
         Args:
             command (`MolterCommand`): The command to add.
         """
-        if command.parent:
+        if command.is_subcommand():
             raise ValueError(
                 "You cannot add subcommands to the client - add the base command"
                 " instead."
