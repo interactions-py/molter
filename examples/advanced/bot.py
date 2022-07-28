@@ -42,16 +42,16 @@ async def generate_prefixes(bot: interactions.Client, msg: interactions.Message)
 # However, if you want to change that, you can do so here by providing
 # a function that takes in a MolterContext and an Exception.
 # This isn't demonstrated here, though.
-molt = molter.setup(
-    client,
-    generate_prefixes=generate_prefixes,
-)
 
 # Also fun fact: as you can see, the setup function returns something - a
 # Molter object in fact. While you can access this via client.molter,
 # having the object like this is better typehinting wise.
 # You usually don't need to use this object, but it does hold all of the
 # prefixed commands, and also has a couple of functions you may like.
+molt = molter.setup(
+    client,
+    generate_prefixes=generate_prefixes,
+)
 
 
 # Anyways, let's be a bit more advanced, shall we?
