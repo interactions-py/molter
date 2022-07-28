@@ -138,12 +138,22 @@ class MolterContext:
 
     @property
     def bot_permissions(self) -> _typing.Optional[interactions.Permissions]:
-        """Returns the permissions the bot has for this context, if possible."""
+        """
+        Returns the permissions the bot has for this context, if the bot user is cached.
+
+        This factors in ownership, roles, and channel overwrites.
+        This does not take into account implicit permissions.
+        """
         return utils.permissions(self.me, self.channel, self.guild) if self.me else None
 
     @property
     def author_permissions(self) -> interactions.Permissions:
-        """Returns the permissions the sender of this context has."""
+        """
+        Returns the permissions the sender of this context has.
+
+        This factors in ownership, roles, and channel overwrites.
+        This does not take into account implicit permissions.
+        """
         return utils.permissions(self.author, self.channel, self.guild)
 
     @property
@@ -198,6 +208,9 @@ class MolterContext:
     async def fetch_bot_permissions(self) -> interactions.Permissions:
         """
         Fetches the permissions the bot has for this context.
+
+        This factors in ownership, roles, and channel overwrites.
+        This does not take into account implicit permissions.
 
         This is more reliable than `MolterContext.bot_permissions`
         as it can fetch data from Discord if needed.
