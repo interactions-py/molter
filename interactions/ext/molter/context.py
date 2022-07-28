@@ -171,6 +171,41 @@ class MolterContext:
         """
         return utils.Typing(self._http, int(self.channel_id))
 
+    async def fetch_me(self) -> _typing.Union[interactions.Member, interactions.User]:
+        """
+        Fetches the bot member or user.
+
+        This is more reliable than `MolterContext.me` as it can
+        fetch data from Discord if needed.
+        """
+        if not self.client.me:
+            raise ValueError("You must be logged in to use this.")
+
+        if self.guild:
+            return await interactions.get(
+                self.client,
+                interactions.Member,
+                parent_id=int(self.guild.id),
+                object_id=int(self.client.me.id),
+            )
+        else:
+            return await interactions.get(
+                self.client,
+                interactions.User,
+                object_id=int(self.client.me.id),
+            )
+
+    async def fetch_bot_permissions(self) -> interactions.Permissions:
+        """
+        Fetches the permissions the bot has for this context.
+
+        This is more reliable than `MolterContext.bot_permissions`
+        as it can fetch data from Discord if needed.
+        """
+
+        me = await self.fetch_me()
+        return utils.permissions(me, self.channel, self.guild)
+
     async def send(
         self,
         content: _typing.Optional[str] = interactions.MISSING,  # type: ignore
