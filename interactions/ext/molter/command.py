@@ -18,6 +18,7 @@ __all__ = (
     "MolterCommand",
     "prefixed_command",
     "prefix_command",
+    "text_command",
     "text_based_command",
     "register_converter",
     "globally_register_converter",
@@ -1025,6 +1026,7 @@ def prefixed_command(
 
 
 prefix_command = prefixed_command
+text_command = prefixed_command
 text_based_command = prefixed_command
 
 
