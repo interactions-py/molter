@@ -146,6 +146,17 @@ class MolterContext:
         """Returns the permissions the sender of this context has."""
         return utils.permissions(self.author, self.channel, self.guild)
 
+    @property
+    def _sendable_channel(self) -> interactions.Channel:
+        """
+        Gets the channel to send a message for.
+        We don't exactly need a channel with fully correct attributes,
+        so we can use a dummy channel here.
+        """
+        return self.channel or interactions.Channel(
+            id=self.channel_id, type=0, _client=self._http  # type: ignore
+        )
+
     def typing(self) -> utils.Typing:
         """
         A context manager to send a typing state to a given channel
@@ -159,20 +170,6 @@ class MolterContext:
         ```
         """
         return utils.Typing(self._http, int(self.channel_id))
-
-    def _get_channel_for_send(self) -> interactions.Channel:
-        """
-        Gets the channel to send a message for.
-        Unlike `get_channel`, we don't exactly need a channel with
-        fully correct attributes, so we can use a dummy channel here.
-        """
-
-        # this is a dummy channel - we don't really care about the type or much of anything
-        # so we've included the basics like the id and the client and that's it
-        # really, if i could remove the type, i would
-        return self.channel or interactions.Channel(
-            id=self.channel_id, type=0, _client=self._http  # type: ignore
-        )
 
     async def send(
         self,
@@ -228,8 +225,7 @@ class MolterContext:
             `interactions.Message`: The sent message as an object.
         """
 
-        channel = self._get_channel_for_send()
-        return await channel.send(
+        return await self._sendable_channel.send(
             content,
             tts=tts,
             files=files,
