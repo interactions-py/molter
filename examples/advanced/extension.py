@@ -38,6 +38,18 @@ class DateTimeConverter(molter.MolterConverter):
 # however, as it adds the necessary code and injects to make them work.
 # MolterExtension is a subclass of Extension, so application commands will work
 # with it, too, just as if it were a normal extension.
+
+# To note: if you're using other extensions that have their own extension class,
+# look into MolterExtensionMixin. You can use it via:
+#
+# class Extension(MolterExtensionMixin, CustomExt):
+#    ...
+#
+# If other extensions use a similar mixin system, you can likely chain them together:
+#
+# class Extension(MolterExtensionMixin, OtherExtMixin, interactions.Extension):
+#    ...
+#
 class Extension(molter.MolterExtension):
     def __init__(self, client: interactions.Client):
         self.client = client
