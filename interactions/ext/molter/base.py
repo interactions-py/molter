@@ -495,7 +495,8 @@ def setup(
     **kwargs,
 ) -> Molter:
     """
-    Allows setup of Molter through normal extension loaded.
+    Allows setup of Molter through normal extension loading.
+    It is recommended to use this function directly, though.
 
     Parameters:
         client (`interactions.Client`): The client instance.
