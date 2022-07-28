@@ -673,8 +673,7 @@ class MolterCommand:
         """
         cmd.parent = self  # just so we know this is a subcommand
 
-        cmd_names = frozenset(self.subcommands)
-        if cmd.name in cmd_names:
+        if self.subcommands.get(cmd.name):
             raise ValueError(
                 "Duplicate Command! Multiple commands share the name/alias"
                 f" `{self.qualified_name} {cmd.name}`"
@@ -682,7 +681,7 @@ class MolterCommand:
         self.subcommands[cmd.name] = cmd
 
         for alias in cmd.aliases:
-            if alias in cmd_names:
+            if self.subcommands.get(alias):
                 raise ValueError(
                     "Duplicate Command! Multiple commands share the name/alias"
                     f" `{self.qualified_name} {cmd.name}`"

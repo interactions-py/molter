@@ -228,15 +228,16 @@ class MolterManager:
 
         command._parse_parameters()
 
-        if command.name not in self.prefixed_commands:
+        if not self.prefixed_commands.get(command.name):
             self.prefixed_commands[command.name] = command
         else:
             raise ValueError(
-                f"Duplicate Command! Multiple commands share the name {command.name}."
+                "Duplicate Command! Multiple commands share the name/alias"
+                f" {command.name}."
             )
 
         for alias in command.aliases:
-            if alias not in self.prefixed_commands:
+            if not self.prefixed_commands.get(alias):
                 self.prefixed_commands[alias] = command
                 continue
             raise ValueError(
