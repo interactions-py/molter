@@ -698,7 +698,11 @@ class MolterCommand:
         """
         command = self.subcommands.pop(name, None)
 
-        if command is None or name in command.aliases:
+        if command is None:
+            return
+
+        if name in command.aliases:
+            command.aliases.remove(name)
             return
 
         for alias in command.aliases:
