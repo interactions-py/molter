@@ -676,7 +676,7 @@ class MolterCommand:
         if self.subcommands.get(cmd.name):
             raise ValueError(
                 "Duplicate command! Multiple commands share the name/alias:"
-                f" {self.qualified_name} {cmd.name}"
+                f" {self.qualified_name} {cmd.name}."
             )
         self.subcommands[cmd.name] = cmd
 
@@ -684,7 +684,7 @@ class MolterCommand:
             if self.subcommands.get(alias):
                 raise ValueError(
                     "Duplicate command! Multiple commands share the name/alias:"
-                    f" {self.qualified_name} {cmd.name}"
+                    f" {self.qualified_name} {cmd.name}."
                 )
             self.subcommands[alias] = cmd
 
