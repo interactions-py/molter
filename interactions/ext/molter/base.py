@@ -259,6 +259,10 @@ class MolterManager:
         ] = None,
     ) -> typing.Callable[..., MolterCommand]:
         """
+        WARNING:
+            This method is deprecated and will be removed in a future release.
+            Please use `molter.prefixed_command()` instead.
+
         A decorator to declare a coroutine as a Molter prefixed command.
 
         Parameters:
