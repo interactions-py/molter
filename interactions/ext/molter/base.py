@@ -243,6 +243,22 @@ class MolterManager:
                 )
             self.prefixed_commands[alias] = command
 
+    def remove_prefixed_command(self, name: str):
+        """
+        Removes a command if it exists.
+        If an alias is specified, only the alias will be removed.
+
+        Args:
+            name (`str`): The command to remove.
+        """
+        command = self.prefixed_commands.pop(name, None)
+
+        if command is None or name in command.aliases:
+            return
+
+        for alias in command.aliases:
+            self.prefixed_commands.pop(alias, None)
+
     def prefixed_command(
         self,
         name: typing.Optional[str] = None,
