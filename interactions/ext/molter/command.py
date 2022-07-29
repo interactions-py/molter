@@ -690,7 +690,7 @@ class MolterCommand:
 
     def remove_command(self, name: str) -> None:
         """
-        Removes a command as a subcommand from this command.
+        Removes a command as a subcommand from this command if it exists.
         If an alias is specified, only the alias will be removed.
 
         Args:
